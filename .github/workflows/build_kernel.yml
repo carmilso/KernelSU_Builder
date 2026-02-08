@@ -133,6 +133,15 @@ jobs:
           chmod +x kernelSU.sh
           ./kernelSU.sh
 
+      - name: Enable KernelSU kprobes hook in defconfig
+        run: |
+          cat >> kernel/arch/arm64/configs/vendor/oplus.config << 'EOF'
+
+          # KernelSU Next configuration
+          CONFIG_KSU=y
+          CONFIG_KSU_KPROBES_HOOK=y
+          EOF
+
       - name: Compile kernel with KernelSU Next support
         run: |
           chmod +x build.sh
