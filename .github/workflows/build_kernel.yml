@@ -56,6 +56,52 @@ jobs:
           echo "=== PATH ==="
           echo "$PATH"
 
+      - name: Patch kernel for Clang compatibility
+        shell: bash
+        run: |
+          SP_FILE="kernel/arch/arm64/include/asm/stack_pointer.h"
+          KGDB_FILE="kernel/arch/arm64/include/asm/kgdb.h"
+
+          # Fix 1: 'register sp unsuitable for global register variables' with Clang 17+
+          # Replace global register variable with inline function + macro so all
+          # call sites (which use bare 'current_stack_pointer') work unchanged.
+          cat > "$SP_FILE" <<'EOF'
+          /* SPDX-License-Identifier: GPL-2.0 */
+          #ifndef __ASM_STACK_POINTER_H
+          #define __ASM_STACK_POINTER_H
+
+          #include <linux/compiler.h>
+
+          /*
+           * How to get the current stack pointer from C.
+           *
+           * Clang does not support global register variables for sp on AArch64,
+           * so use an inline function with inline asm instead. The macro ensures
+           * all existing call sites continue to work unchanged.
+           */
+          static __always_inline unsigned long __current_stack_pointer(void)
+          {
+          	unsigned long sp;
+          	asm volatile("mov %0, sp" : "=r" (sp));
+          	return sp;
+          }
+
+          #define current_stack_pointer (__current_stack_pointer())
+
+          #endif /* __ASM_STACK_POINTER_H */
+          EOF
+          echo "=== Patched $SP_FILE ==="
+          cat "$SP_FILE"
+
+          # Fix 2: 'value 1025 out of range for constraint I' in kgdb.h
+          # The "I" constraint with Clang on AArch64 only accepts logical immediates,
+          # which cannot encode 0x401 (1025). Use __stringify() to embed the value
+          # directly in the asm string, bypassing constraints entirely.
+          sed -i '/#include <asm\/debug-monitors.h>/a #include <linux\/stringify.h>' "$KGDB_FILE"
+          sed -i 's|asm ("brk %0" : : "I" (KGDB_COMPILED_DBG_BRK_IMM));|asm volatile("brk #" __stringify(KGDB_COMPILED_DBG_BRK_IMM));|' "$KGDB_FILE"
+          echo "=== Patched $KGDB_FILE ==="
+          cat "$KGDB_FILE"
+
       - name: Compile kernel
         run: |
           chmod +x build.sh
@@ -124,27 +170,28 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-             ${{ github.workspace }}/${{ env.ZIP_NO_KSU }}
-             ${{ github.workspace }}/${{ env.ZIP_KSU }}
+            ${{ github.workspace }}/${{ env.ZIP_NO_KSU }}
+            ${{ github.workspace }}/${{ env.ZIP_KSU }}
           token: ${{ secrets.GITHUB_TOKEN }}
           name: KernelSU Next Release - ${{ env.KERNELSU_VERSION }}
           tag_name: ${{ github.run_id }}
           body: |
-             **Info:**
-              - KernelSU Next Version: ${{ env.KERNELSU_VERSION }}
-              - Device: OnePlus 8T (kebab)
-              - ROM: LineageOS 23 (Android 16)
-              - Kernel: 4.19 (SM8250/kona)
+            **Info:**
+            - KernelSU Next Version: ${{ env.KERNELSU_VERSION }} (legacy branch)
+            - Device: OnePlus 8T (kebab)
+            - ROM: LineageOS 23 (Android 16)
+            - Kernel: 4.19 (SM8250/kona)
+            - Hook method: kprobes
 
-              **Installation:**
-              - Download desired zip file.
-              - Flash the zip file in recovery using sideload or any other method.
+            **Installation:**
+            - Download desired zip file.
+            - Flash the zip file in recovery using sideload or any other method.
 
-              <details>
-                <summary>Build Settings</summary>
-                  ```
-                  ${{ env.buildsettings }}
-                  ```
-              </details>
+            <details>
+              <summary>Build Settings</summary>
+              ```
+              ${{ env.buildsettings }}
+              ```
+            </details>
           draft: false
           prerelease: false

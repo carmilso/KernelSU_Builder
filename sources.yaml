@@ -12,7 +12,7 @@ LineageOS-23-kebab:
   anykernel:
     - kebab
   kernelSU:
-    - next-stable
+    - next-legacy
 
 Clean:
   out:
