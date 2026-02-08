@@ -1,4 +1,4 @@
-name: KernelSU Builder
+name: KernelSU Next Builder - OnePlus 8T
 
 on:
   push:
@@ -11,24 +11,30 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["LineageOS-20", "Zenitsu", "DivestOS-13", "Sage-Android-14"]
+        version: ["LineageOS-23-kebab"]
 
     env:
       VERSION: ${{ matrix.version }}
       ARCH: arm64
+      SUBARCH: arm64
       KBUILD_BUILD_HOST: Github-Action
       KBUILD_BUILD_USER: "KernelSU_Builder"
       CLANG_PATH: ${{ github.workspace }}/kernel/clang/bin
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install build dependencies
         run: |
           sudo apt update
-          sudo apt install -y python3-pip jq libarchive-tools zip lib32z-dev libghc-bzlib-dev pngcrush ^liblzma.* python-is-python3 libsdl1.2-dev autoconf libxml2-utils wget pkg-config unzip w3m gawk imagemagick libc6-dev gcc-multilib patchelf gzip clang subversion optipng device-tree-compiler ccache gcc ^liblz4-.* lzip rsync automake fastboot python2.7 patch zip pngquant expat lzop libswitch-perl make libcap-dev python2 adb libxml2 bison libxml-simple-perl zlib1g-dev libarchive-tools libtool squashfs-tools gperf ^lzma.* libfl-dev ncurses-dev pwgen flex libtinfo5 minicom liblz4-tool libmpfr-dev libssl-dev lib32ncurses5-dev libbz2-dev lib32z1-dev libgmp-dev git libncurses5-dev dpkg-dev libmpc-dev lftp python2-dev python3 rar git-lfs policycoreutils unrar libncurses5 libbz2-1.0 ncftp tree python-all-dev bzip2 bc ftp software-properties-common tar libgl1-mesa-dev texinfo schedtool curl libexpat1-dev llvm libc6-dev-i386 apt-utils cmake g++-multilib build-essential re2c axel maven xsltproc g++ libx11-dev libxml-sax-base-perl gnupg bash
-          sudo pip3 install yq
+          sudo apt install -y bc bison build-essential ccache curl flex \
+            g++-multilib gcc-multilib git gnupg gperf imagemagick \
+            lib32readline-dev lib32z1-dev libelf-dev liblz4-tool \
+            libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils \
+            lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev \
+            python3-pip python-is-python3 jq wget libarchive-tools device-tree-compiler
+          sudo pip3 install pyyaml
 
       - name: Set up ccache
         run: |
@@ -36,7 +42,7 @@ jobs:
           echo "USE_CCACHE=1" >> $GITHUB_ENV
 
       - name: Cache ccache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.ccache
           key: ${{ runner.os }}-ccache-${{ github.sha }}
@@ -51,7 +57,7 @@ jobs:
       - name: Add Clang to PATH
         run: |
           echo "${CLANG_PATH}" >> $GITHUB_PATH
-        
+
       - name: Compile kernel
         run: |
           chmod +x build.sh
@@ -59,9 +65,7 @@ jobs:
 
       - name: Make output directory for kernel
         run: |
-          mkdir outw
-          mkdir outw/false
-          mkdir outw/true
+          mkdir -p outw/false outw/true
 
       - name: Move kernel without KernelSU support to output directory
         run: |
@@ -79,17 +83,17 @@ jobs:
       - name: Set KERNELSU_VERSION environment variable
         run: echo "KERNELSU_VERSION=$(cat ksu_version.txt)" >> $GITHUB_ENV
 
-      - name: Add KernelSU support to kernel
+      - name: Add KernelSU Next support to kernel
         run: |
           chmod +x kernelSU.sh
           ./kernelSU.sh
 
-      - name: Compile kernel with KernelSU support
+      - name: Compile kernel with KernelSU Next support
         run: |
           chmod +x build.sh
           ./build.sh
 
-      - name: Move kernel with KernelSU support to output directory
+      - name: Move kernel with KernelSU Next support to output directory
         run: |
           chmod +x move.sh
           ./move.sh
@@ -99,10 +103,14 @@ jobs:
           chmod +x anykernel.sh
           ./anykernel.sh
 
+      - name: Configure AnyKernel3 for OnePlus 8T
+        run: |
+          cp anykernel_config.sh AnyKernel3/anykernel.sh
+
       - name: Set ZIP_NO_KSU and ZIP_KSU environment variables
         run: |
           echo "ZIP_NO_KSU=${{ env.VERSION }}-NoKernelSU.zip" >> $GITHUB_ENV
-          echo "ZIP_KSU=${{ env.VERSION }}-KernelSU-$(cat ksu_version.txt).zip" >> $GITHUB_ENV
+          echo "ZIP_KSU=${{ env.VERSION }}-KernelSU-Next-$(cat ksu_version.txt).zip" >> $GITHUB_ENV
 
       - name: Make AnyKernel3 zip
         run: |
@@ -115,22 +123,25 @@ jobs:
           ./extract.sh
 
       - name: Make a release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
              ${{ github.workspace }}/${{ env.ZIP_NO_KSU }}
              ${{ github.workspace }}/${{ env.ZIP_KSU }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          name: KernelSU Release - ${{ env.KERNELSU_VERSION }}
+          name: KernelSU Next Release - ${{ env.KERNELSU_VERSION }}
           tag_name: ${{ github.run_id }}
           body: |
              **Info:**
-              - KernelSU Version: ${{ env.KERNELSU_VERSION }}.
-              
+              - KernelSU Next Version: ${{ env.KERNELSU_VERSION }}
+              - Device: OnePlus 8T (kebab)
+              - ROM: LineageOS 23 (Android 16)
+              - Kernel: 4.19 (SM8250/kona)
+
               **Installation:**
               - Download desired zip file.
               - Flash the zip file in recovery using sideload or any other method.
-            
+
               <details>
                 <summary>Build Settings</summary>
                   ```

@@ -31,7 +31,9 @@ echo "$kernel_commands" | while read -r command; do
     eval "$command kernel"
 done
 
-# Clone the clang and append clone path to the command
+# Setup clang toolchain
+# Commands run inside the kernel directory so paths are relative to it
+cd kernel
 echo "$clang_commands" | while read -r command; do
-    eval "$command kernel/clang"
+    eval "$command"
 done
