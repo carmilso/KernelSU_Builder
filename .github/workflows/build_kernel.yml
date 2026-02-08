@@ -133,19 +133,20 @@ jobs:
           chmod +x kernelSU.sh
           ./kernelSU.sh
 
-      - name: Enable KernelSU kprobes hook in defconfig
-        run: |
-          cat >> kernel/arch/arm64/configs/vendor/oplus.config << 'EOF'
-
-          # KernelSU Next configuration
-          CONFIG_KSU=y
-          CONFIG_KSU_KPROBES_HOOK=y
-          EOF
-
       - name: Compile kernel with KernelSU Next support
         run: |
-          chmod +x build.sh
-          ./build.sh
+          cd kernel
+          # First, generate .config with defconfig + overlay
+          make O=out ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- LD=ld.lld LLVM=1 vendor/kona-perf_defconfig vendor/oplus.config
+          # Explicitly enable KernelSU kprobes hook in .config
+          echo "CONFIG_KSU=y" >> out/.config
+          echo "CONFIG_KSU_KPROBES_HOOK=y" >> out/.config
+          # Resolve all config dependencies
+          make O=out ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- LD=ld.lld LLVM=1 olddefconfig
+          # Verify KSU config
+          grep CONFIG_KSU out/.config || echo "WARNING: CONFIG_KSU not found in .config!"
+          # Build
+          make -j$(nproc --all) O=out ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- LD=ld.lld LLVM=1
 
       - name: Move kernel with KernelSU Next support to output directory
         run: |
