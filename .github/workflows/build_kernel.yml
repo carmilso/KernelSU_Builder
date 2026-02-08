@@ -45,6 +45,17 @@ jobs:
         run: |
           echo "${CLANG_PATH}" >> $GITHUB_PATH
 
+      - name: Verify Clang toolchain
+        run: |
+          echo "=== CLANG_PATH contents ==="
+          ls -la "${CLANG_PATH}/" | head -20 || echo "CLANG_PATH directory not found!"
+          echo "=== which clang ==="
+          which clang || echo "clang not found in PATH!"
+          echo "=== clang version ==="
+          clang --version || echo "clang --version failed!"
+          echo "=== PATH ==="
+          echo "$PATH"
+
       - name: Compile kernel
         run: |
           chmod +x build.sh
