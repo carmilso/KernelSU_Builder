@@ -31,9 +31,14 @@ echo "$kernel_commands" | while read -r command; do
     eval "$command kernel"
 done
 
-# Setup clang toolchain
-# Commands run inside the kernel directory so paths are relative to it
-cd kernel
-echo "$clang_commands" | while read -r command; do
-    eval "$command"
-done
+# Setup clang toolchain (skip if already present, e.g. restored from cache)
+if [ -d "kernel/clang/bin" ]; then
+    echo -e "\033[32mClang toolchain already present, skipping download.\033[0m"
+else
+    # Commands run inside the kernel directory so paths are relative to it
+    cd kernel
+    echo "$clang_commands" | while read -r command; do
+        eval "$command"
+    done
+    cd ..
+fi

@@ -37,6 +37,13 @@ jobs:
             binutils-aarch64-linux-gnu
           sudo pip3 install pyyaml
 
+      - name: Restore Clang toolchain from cache
+        id: clang-cache
+        uses: actions/cache@v4
+        with:
+          path: kernel/clang
+          key: clang-r547379
+
       - name: Clone clang and kernel sources
         run: |
           chmod +x clone.sh

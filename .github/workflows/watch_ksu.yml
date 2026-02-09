@@ -1,11 +1,11 @@
-name: Watch KernelSU Next
+name: Watch KernelSU Next (Legacy)
 on:
   schedule:
     - cron: '0 */6 * * *'  # Run every 6 hours
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
-  check-release:
+  check-legacy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -14,34 +14,68 @@ jobs:
       - name: Install jq
         run: sudo apt-get install -y jq
 
-      - name: Check for new release
-        id: check_release
+      - name: Check for new legacy branch commits
+        id: check
         run: |
-          LATEST_RELEASE=$(curl --silent "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/releases/latest" | jq -r .tag_name)
-          CURRENT_RELEASE=$(cat ksu_version.txt || true)
-          if [ "$LATEST_RELEASE" != "$CURRENT_RELEASE" ]; then
-            echo "release=$LATEST_RELEASE" >> $GITHUB_OUTPUT
-            echo "update_needed=true" >> $GITHUB_OUTPUT
-          else
-            echo "update_needed=false" >> $GITHUB_OUTPUT
+          # Get the latest commit SHA on the legacy branch
+          LEGACY_SHA=$(curl --silent "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/branches/legacy" | jq -r '.commit.sha')
+
+          if [ -z "$LEGACY_SHA" ] || [ "$LEGACY_SHA" = "null" ]; then
+            echo "::error::Failed to fetch legacy branch SHA"
+            exit 1
           fi
 
-      - name: Create file with KernelSU Next version
-        if: steps.check_release.outputs.update_needed == 'true'
+          CURRENT_SHA=$(cat ksu_legacy_sha.txt 2>/dev/null || echo "none")
+          echo "Latest legacy SHA: $LEGACY_SHA"
+          echo "Current SHA: $CURRENT_SHA"
+
+          if [ "$LEGACY_SHA" != "$CURRENT_SHA" ]; then
+            # Find the latest -legacy tag for version naming
+            LEGACY_TAG=$(curl --silent "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/tags?per_page=50" \
+              | jq -r '[.[] | select(.name | endswith("-legacy"))][0].name // empty')
+
+            if [ -z "$LEGACY_TAG" ]; then
+              # Fallback: use short SHA as version
+              KSU_VERSION="legacy-${LEGACY_SHA:0:7}"
+            else
+              # Check if branch is ahead of the tag
+              COMPARE=$(curl --silent "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/compare/${LEGACY_TAG}...${LEGACY_SHA}")
+              AHEAD_BY=$(echo "$COMPARE" | jq -r '.ahead_by // 0')
+              if [ "$AHEAD_BY" -gt 0 ] 2>/dev/null; then
+                KSU_VERSION="${LEGACY_TAG}+${LEGACY_SHA:0:7}"
+              else
+                KSU_VERSION="$LEGACY_TAG"
+              fi
+            fi
+
+            echo "sha=$LEGACY_SHA" >> $GITHUB_OUTPUT
+            echo "version=$KSU_VERSION" >> $GITHUB_OUTPUT
+            echo "update_needed=true" >> $GITHUB_OUTPUT
+            echo "New version: $KSU_VERSION"
+          else
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+            echo "No changes detected."
+          fi
+
+      - name: Update tracking files
+        if: steps.check.outputs.update_needed == 'true'
         run: |
-          echo "${{ steps.check_release.outputs.release }}" > ksu_version.txt
+          echo "${{ steps.check.outputs.sha }}" > ksu_legacy_sha.txt
+          echo "${{ steps.check.outputs.version }}" > ksu_version.txt
 
       - name: Commit and push
-        if: steps.check_release.outputs.update_needed == 'true'
+        if: steps.check.outputs.update_needed == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add ksu_version.txt
+          git add ksu_legacy_sha.txt ksu_version.txt
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update to latest KernelSU Next release tag" && git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:$BRANCH_NAME)
+          git diff --quiet && git diff --staged --quiet || \
+            (git commit -m "Update KernelSU-Next legacy to ${{ steps.check.outputs.version }}" && \
+             git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:$BRANCH_NAME)
 
       - name: Trigger Build Kernel workflow
-        if: steps.check_release.outputs.update_needed == 'true'
+        if: steps.check.outputs.update_needed == 'true'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
