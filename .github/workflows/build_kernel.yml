@@ -41,13 +41,23 @@ jobs:
         id: clang-cache
         uses: actions/cache@v4
         with:
-          path: kernel/clang
+          path: clang-cache
           key: clang-r547379
 
       - name: Clone clang and kernel sources
         run: |
           chmod +x clone.sh
           ./clone.sh
+
+      - name: Restore cached Clang into kernel tree
+        if: steps.clang-cache.outputs.cache-hit == 'true'
+        run: |
+          rm -rf kernel/clang
+          mv clang-cache kernel/clang
+
+      - name: Save Clang to cache directory
+        if: steps.clang-cache.outputs.cache-hit != 'true'
+        run: cp -a kernel/clang clang-cache
 
       - name: Add Clang to PATH
         run: |
