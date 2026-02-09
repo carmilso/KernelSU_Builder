@@ -17,6 +17,10 @@ jobs:
       VERSION: ${{ matrix.version }}
       ARCH: arm64
       SUBARCH: arm64
+      OUT_DIR: out
+      LLVM: 1
+      CROSS_COMPILE: aarch64-linux-gnu-
+      CLANG_TRIPLE: aarch64-linux-gnu-
       KBUILD_BUILD_HOST: Github-Action
       KBUILD_BUILD_USER: "KernelSU_Builder"
       CLANG_PATH: ${{ github.workspace }}/kernel/clang/bin
@@ -167,7 +171,7 @@ jobs:
           scripts/config --file out/.config --enable KSU_KPROBES_HOOK
 
           # Step 3: Resolve all config dependencies with full toolchain flags
-          make O=out ARCH=arm64 LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- olddefconfig
+          make O=${OUT_DIR} ARCH=${ARCH} LLVM=${LLVM} CROSS_COMPILE=${CROSS_COMPILE} CLANG_TRIPLE=${CLANG_TRIPLE} olddefconfig
 
           # Step 4: Verify KSU config
           grep CONFIG_KSU out/.config || echo "WARNING: CONFIG_KSU not found in .config!"
