@@ -4,11 +4,11 @@ LineageOS-23-kebab:
   clang:
     - mkdir -p clang && wget -qO- "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz" | tar -C clang -zxf -
   config:
-    - ARCH=${ARCH} scripts/kconfig/merge_config.sh -O ${OUT_DIR} arch/arm64/configs/vendor/kona-perf_defconfig arch/arm64/configs/vendor/oplus.config && make O=${OUT_DIR} ARCH=${ARCH} LLVM=${LLVM} CROSS_COMPILE=${CROSS_COMPILE} CLANG_TRIPLE=${CLANG_TRIPLE} olddefconfig
+    - ARCH=arm64 LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- scripts/kconfig/merge_config.sh -O out vendor/kona-perf_defconfig vendor/oplus.config
   build:
-    - make -j$(nproc --all) O=${OUT_DIR} ARCH=${ARCH} LLVM=${LLVM} CROSS_COMPILE=${CROSS_COMPILE} CLANG_TRIPLE=${CLANG_TRIPLE}
+    - make -j$(nproc --all) O=out ARCH=arm64 LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu-
   target:
-    - ${OUT_DIR}/arch/arm64/boot/Image
+    - out/arch/arm64/boot/Image
   anykernel:
     - kebab
   kernelSU:
@@ -20,11 +20,11 @@ LineageOS-23.2-kebab:
   clang:
     - mkdir -p clang && wget -qO- "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz" | tar -C clang -zxf -
   config:
-    - ARCH=${ARCH} scripts/kconfig/merge_config.sh -O ${OUT_DIR} arch/arm64/configs/vendor/kona-perf_defconfig arch/arm64/configs/vendor/oplus.config && make O=${OUT_DIR} ARCH=${ARCH} LLVM=${LLVM} CROSS_COMPILE=${CROSS_COMPILE} CLANG_TRIPLE=${CLANG_TRIPLE} olddefconfig
+    - ARCH=arm64 LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- scripts/kconfig/merge_config.sh -O out vendor/kona-perf_defconfig vendor/oplus.config
   build:
-    - make -j$(nproc --all) O=${OUT_DIR} ARCH=${ARCH} LLVM=${LLVM} CROSS_COMPILE=${CROSS_COMPILE} CLANG_TRIPLE=${CLANG_TRIPLE}
+    - make -j$(nproc --all) O=out ARCH=arm64 LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu-
   target:
-    - ${OUT_DIR}/arch/arm64/boot/Image
+    - out/arch/arm64/boot/Image
   anykernel:
     - kebab
   kernelSU:
