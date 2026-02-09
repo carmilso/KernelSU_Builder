@@ -14,6 +14,22 @@ LineageOS-23-kebab:
   kernelSU:
     - next-legacy
 
+LineageOS-23.2-kebab:
+  kernel:
+    - git clone --depth=1 https://github.com/LineageOS/android_kernel_oneplus_sm8250.git -b lineage-23.2
+  clang:
+    - mkdir -p clang && wget -qO- "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz" | tar -C clang -zxf -
+  config:
+    - make O=out ARCH=arm64 CC=clang LD=ld.lld LLVM=1 vendor/kona-perf_defconfig vendor/oplus.config
+  build:
+    - make -j$(nproc --all) O=out ARCH=arm64 CC=clang LD=ld.lld LLVM=1
+  target:
+    - out/arch/arm64/boot/Image
+  anykernel:
+    - kebab
+  kernelSU:
+    - next-legacy
+
 Clean:
   out:
     - rm -rf out

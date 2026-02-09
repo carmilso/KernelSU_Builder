@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["LineageOS-23-kebab"]
+        version: ["LineageOS-23-kebab", "LineageOS-23.2-kebab"]
 
     env:
       VERSION: ${{ matrix.version }}
@@ -136,18 +136,31 @@ jobs:
       - name: Compile kernel with KernelSU Next support
         run: |
           cd kernel
-          # First, generate .config with defconfig + overlay
-          make O=out ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- LD=ld.lld LLVM=1 vendor/kona-perf_defconfig vendor/oplus.config
-          # Explicitly enable KernelSU kprobes hook in .config
+          # Read config and build commands from sources.yaml
+          json=$(python -c "import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)" < ../sources.yaml)
+          config_cmd=$(echo "$json" | jq -r --arg v "$VERSION" '.[$v].config[]')
+          build_cmd=$(echo "$json" | jq -r --arg v "$VERSION" '.[$v].build[]')
+
+          # Extract make flags from config command (everything before the defconfig targets)
+          # e.g. "make O=out ARCH=arm64 CC=clang ... LD=ld.lld LLVM=1"
+          make_flags=$(echo "$config_cmd" | sed 's/ vendor\/.*$//')
+
+          # Step 1: Generate .config with defconfig + overlay
+          eval "$config_cmd"
+
+          # Step 2: Inject KernelSU kprobes hook config
           echo "CONFIG_KSU=y" >> out/.config
           echo "# CONFIG_KSU_MANUAL_HOOK is not set" >> out/.config
           echo "CONFIG_KSU_KPROBES_HOOK=y" >> out/.config
-          # Resolve all config dependencies
-          make O=out ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- LD=ld.lld LLVM=1 olddefconfig
-          # Verify KSU config
+
+          # Step 3: Resolve all config dependencies
+          eval "$make_flags olddefconfig"
+
+          # Step 4: Verify KSU config
           grep CONFIG_KSU out/.config || echo "WARNING: CONFIG_KSU not found in .config!"
-          # Build
-          make -j$(nproc --all) O=out ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- LD=ld.lld LLVM=1
+
+          # Step 5: Build
+          eval "$build_cmd"
 
       - name: Move kernel with KernelSU Next support to output directory
         run: |
@@ -191,13 +204,16 @@ jobs:
             **Info:**
             - KernelSU Next Version: ${{ env.KERNELSU_VERSION }} (legacy branch)
             - Device: OnePlus 8T (kebab)
-            - ROM: LineageOS 23 (Android 16)
             - Kernel: 4.19 (SM8250/kona)
             - Hook method: kprobes
 
+            **Variants:**
+            - `LineageOS-23-kebab` — LineageOS 23.0 (lineage-23.0 branch)
+            - `LineageOS-23.2-kebab` — LineageOS 23.2 (lineage-23.2 branch)
+
             **Installation:**
-            - Download desired zip file.
-            - Flash the zip file in recovery using sideload or any other method.
+            - Download the zip matching your ROM version.
+            - Flash in recovery using sideload or any other method.
 
             <details>
               <summary>Build Settings</summary>
