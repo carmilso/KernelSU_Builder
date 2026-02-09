@@ -74,51 +74,51 @@ jobs:
           echo "=== PATH ==="
           echo "$PATH"
 
-      - name: Patch kernel for Clang compatibility
-        shell: bash
-        run: |
-          SP_FILE="kernel/arch/arm64/include/asm/stack_pointer.h"
-          KGDB_FILE="kernel/arch/arm64/include/asm/kgdb.h"
+      # - name: Patch kernel for Clang compatibility
+      #   shell: bash
+      #   run: |
+      #     SP_FILE="kernel/arch/arm64/include/asm/stack_pointer.h"
+      #     KGDB_FILE="kernel/arch/arm64/include/asm/kgdb.h"
 
-          # Fix 1: 'register sp unsuitable for global register variables' with Clang 17+
-          # Replace global register variable with inline function + macro so all
-          # call sites (which use bare 'current_stack_pointer') work unchanged.
-          cat > "$SP_FILE" <<'EOF'
-          /* SPDX-License-Identifier: GPL-2.0 */
-          #ifndef __ASM_STACK_POINTER_H
-          #define __ASM_STACK_POINTER_H
+      #     # Fix 1: 'register sp unsuitable for global register variables' with Clang 17+
+      #     # Replace global register variable with inline function + macro so all
+      #     # call sites (which use bare 'current_stack_pointer') work unchanged.
+      #     cat > "$SP_FILE" <<'EOF'
+      #     /* SPDX-License-Identifier: GPL-2.0 */
+      #     #ifndef __ASM_STACK_POINTER_H
+      #     #define __ASM_STACK_POINTER_H
 
-          #include <linux/compiler.h>
+      #     #include <linux/compiler.h>
 
-          /*
-           * How to get the current stack pointer from C.
-           *
-           * Clang does not support global register variables for sp on AArch64,
-           * so use an inline function with inline asm instead. The macro ensures
-           * all existing call sites continue to work unchanged.
-           */
-          static __always_inline unsigned long __current_stack_pointer(void)
-          {
-          	unsigned long sp;
-          	asm volatile("mov %0, sp" : "=r" (sp));
-          	return sp;
-          }
+      #     /*
+      #      * How to get the current stack pointer from C.
+      #      *
+      #      * Clang does not support global register variables for sp on AArch64,
+      #      * so use an inline function with inline asm instead. The macro ensures
+      #      * all existing call sites continue to work unchanged.
+      #      */
+      #     static __always_inline unsigned long __current_stack_pointer(void)
+      #     {
+      #     	unsigned long sp;
+      #     	asm volatile("mov %0, sp" : "=r" (sp));
+      #     	return sp;
+      #     }
 
-          #define current_stack_pointer (__current_stack_pointer())
+      #     #define current_stack_pointer (__current_stack_pointer())
 
-          #endif /* __ASM_STACK_POINTER_H */
-          EOF
-          echo "=== Patched $SP_FILE ==="
-          cat "$SP_FILE"
+      #     #endif /* __ASM_STACK_POINTER_H */
+      #     EOF
+      #     echo "=== Patched $SP_FILE ==="
+      #     cat "$SP_FILE"
 
-          # Fix 2: 'value 1025 out of range for constraint I' in kgdb.h
-          # The "I" constraint with Clang on AArch64 only accepts logical immediates,
-          # which cannot encode 0x401 (1025). Use __stringify() to embed the value
-          # directly in the asm string, bypassing constraints entirely.
-          sed -i '/#include <asm\/debug-monitors.h>/a #include <linux\/stringify.h>' "$KGDB_FILE"
-          sed -i 's|asm ("brk %0" : : "I" (KGDB_COMPILED_DBG_BRK_IMM));|asm volatile("brk #" __stringify(KGDB_COMPILED_DBG_BRK_IMM));|' "$KGDB_FILE"
-          echo "=== Patched $KGDB_FILE ==="
-          cat "$KGDB_FILE"
+      #     # Fix 2: 'value 1025 out of range for constraint I' in kgdb.h
+      #     # The "I" constraint with Clang on AArch64 only accepts logical immediates,
+      #     # which cannot encode 0x401 (1025). Use __stringify() to embed the value
+      #     # directly in the asm string, bypassing constraints entirely.
+      #     sed -i '/#include <asm\/debug-monitors.h>/a #include <linux\/stringify.h>' "$KGDB_FILE"
+      #     sed -i 's|asm ("brk %0" : : "I" (KGDB_COMPILED_DBG_BRK_IMM));|asm volatile("brk #" __stringify(KGDB_COMPILED_DBG_BRK_IMM));|' "$KGDB_FILE"
+      #     echo "=== Patched $KGDB_FILE ==="
+      #     cat "$KGDB_FILE"
 
       - name: Compile kernel
         run: |
@@ -158,20 +158,16 @@ jobs:
           config_cmd=$(echo "$json" | jq -r --arg v "$VERSION" '.[$v].config[]')
           build_cmd=$(echo "$json" | jq -r --arg v "$VERSION" '.[$v].build[]')
 
-          # Extract make flags from config command (everything before the defconfig targets)
-          # e.g. "make O=out ARCH=arm64 CC=clang ... LD=ld.lld LLVM=1"
-          make_flags=$(echo "$config_cmd" | sed 's/ vendor\/.*$//')
-
-          # Step 1: Generate .config with defconfig + overlay
+          # Step 1: Generate .config using merge_config.sh and resolve dependencies
           eval "$config_cmd"
 
-          # Step 2: Inject KernelSU kprobes hook config
-          echo "CONFIG_KSU=y" >> out/.config
-          echo "# CONFIG_KSU_MANUAL_HOOK is not set" >> out/.config
-          echo "CONFIG_KSU_KPROBES_HOOK=y" >> out/.config
+          # Step 2: Inject KernelSU kprobes hook config using scripts/config
+          scripts/config --file out/.config --enable KSU
+          scripts/config --file out/.config --disable KSU_MANUAL_HOOK
+          scripts/config --file out/.config --enable KSU_KPROBES_HOOK
 
-          # Step 3: Resolve all config dependencies
-          eval "$make_flags olddefconfig"
+          # Step 3: Resolve all config dependencies with full toolchain flags
+          make O=out ARCH=arm64 LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- olddefconfig
 
           # Step 4: Verify KSU config
           grep CONFIG_KSU out/.config || echo "WARNING: CONFIG_KSU not found in .config!"
