@@ -4,7 +4,7 @@ LineageOS-23-kebab:
   clang:
     - mkdir -p clang && wget -qO- "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz" | tar -C clang -zxf -
   config:
-    - make O=out ARCH=arm64 LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- vendor/kona-perf_defconfig vendor/oplus.config
+    - ARCH=arm64 scripts/kconfig/merge_config.sh -O out arch/arm64/configs/vendor/kona-perf_defconfig arch/arm64/configs/vendor/oplus.config && make O=out ARCH=arm64 LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- olddefconfig
   build:
     - make -j$(nproc --all) O=out ARCH=arm64 LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu-
   target:
@@ -20,9 +20,9 @@ LineageOS-23.2-kebab:
   clang:
     - mkdir -p clang && wget -qO- "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz" | tar -C clang -zxf -
   config:
-    - make O=out ARCH=arm64 LLVM=1 vendor/kona-perf_defconfig vendor/oplus.config
+    - ARCH=arm64 scripts/kconfig/merge_config.sh -O out arch/arm64/configs/vendor/kona-perf_defconfig arch/arm64/configs/vendor/oplus.config && make O=out ARCH=arm64 LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- olddefconfig
   build:
-    - make -j$(nproc --all) O=out ARCH=arm64 LLVM=1
+    - make -j$(nproc --all) O=out ARCH=arm64 LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu-
   target:
     - out/arch/arm64/boot/Image
   anykernel:
