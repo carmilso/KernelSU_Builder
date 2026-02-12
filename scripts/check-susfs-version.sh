@@ -15,7 +15,8 @@ YELLOW='\033[33m'
 RED='\033[31m'
 NC='\033[0m'
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Script is in scripts/ subdirectory, go up one level to project root
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOCAL_PATCH="$SCRIPT_DIR/susfs-2.0.0.patch"
 UPSTREAM_URL="https://raw.githubusercontent.com/TheSillyOk/kernel_ls_patches/master/susfs-2.0.0.patch"
 TEMP_PATCH="/tmp/susfs-2.0.0-upstream.patch"

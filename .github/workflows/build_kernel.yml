@@ -114,8 +114,8 @@ jobs:
         if: steps.check-susfs.outputs.susfs_enabled == 'true'
         id: check-susfs-version
         run: |
-          chmod +x check-susfs-version.sh
-          ./check-susfs-version.sh || true
+          chmod +x scripts/check-susfs-version.sh
+          ./scripts/check-susfs-version.sh || true
 
       - name: Add KernelSU-Next-SUSFS support to kernel
         if: steps.check-susfs.outputs.susfs_enabled == 'true'
@@ -123,8 +123,8 @@ jobs:
           KSU_REPO_URL: https://github.com/wshamroukh/KernelSU-Next-SUSFS-kernelv4.19
           KSU_BRANCH: legacy
         run: |
-          chmod +x kernelSU-susfs.sh
-          ./kernelSU-susfs.sh
+          chmod +x scripts/kernelSU-susfs.sh
+          ./scripts/kernelSU-susfs.sh
 
       - name: Add KernelSU Next support to kernel (standard)
         if: steps.check-susfs.outputs.susfs_enabled != 'true'
@@ -135,8 +135,8 @@ jobs:
       - name: Apply SUSFS patches and hooks
         if: steps.check-susfs.outputs.susfs_enabled == 'true'
         run: |
-          chmod +x apply-susfs.sh
-          ./apply-susfs.sh
+          chmod +x scripts/apply-susfs.sh
+          ./scripts/apply-susfs.sh
 
       - name: Compile kernel with KernelSU Next support (SUSFS)
         if: steps.check-susfs.outputs.susfs_enabled == 'true'
@@ -158,8 +158,8 @@ jobs:
 
           # Step 2: Apply SUSFS config options using configure-susfs.sh
           echo "=== Configuring KernelSU + SUSFS ==="
-          chmod +x ../configure-susfs.sh
-          ../configure-susfs.sh
+          chmod +x ../scripts/configure-susfs.sh
+          ../scripts/configure-susfs.sh
 
           # Step 3: Build
           echo "=== Building kernel with KernelSU + SUSFS ==="

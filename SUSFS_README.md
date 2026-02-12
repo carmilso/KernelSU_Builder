@@ -39,13 +39,14 @@ The SUSFS integration is designed to be modular and retrocompatible:
 
 ```
 KernelSU_Builder/
+├── scripts/                     # SUSFS integration scripts
+│   ├── kernelSU-susfs.sh       # Install KernelSU-Next-SUSFS driver
+│   ├── apply-susfs.sh          # Main SUSFS coordinator script
+│   ├── fix-susfs-rejections.sh # Fix rejected patch hunks
+│   ├── apply-ksu-hooks.sh      # Apply 7 manual KernelSU hooks
+│   ├── configure-susfs.sh      # Configure KernelSU + SUSFS options
+│   └── check-susfs-version.sh  # Check for new SUSFS patch versions
 ├── susfs-2.0.0.patch           # SUSFS kernel patch (from TheSillyOk)
-├── kernelSU-susfs.sh           # Install KernelSU-Next-SUSFS driver
-├── apply-susfs.sh              # Main SUSFS coordinator script
-├── fix-susfs-rejections.sh     # Fix rejected patch hunks
-├── apply-ksu-hooks.sh          # Apply 7 manual KernelSU hooks
-├── configure-susfs.sh          # Configure KernelSU + SUSFS options
-├── check-susfs-version.sh      # Check for new SUSFS patch versions
 └── sources.yaml                # Configuration with SUSFS support
 ```
 

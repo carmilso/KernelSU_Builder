@@ -19,7 +19,8 @@ NC='\033[0m' # No Color
 # Get configuration from sources.yaml via environment variables
 REPO_URL=${KSU_REPO_URL}
 BRANCH=${KSU_BRANCH}
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Script is in scripts/ subdirectory, go up one level to project root
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 KERNEL_DIR="$SCRIPT_DIR/kernel"
 DRIVER_DIR="$SCRIPT_DIR/KernelSU-Next-SUSFS-kernelv4.19"
 

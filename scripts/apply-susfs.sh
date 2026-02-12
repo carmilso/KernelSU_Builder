@@ -18,8 +18,8 @@ RED='\033[31m'
 YELLOW='\033[33m'
 NC='\033[0m' # No Color
 
-# Get project root
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Get project root (script is in scripts/ subdirectory)
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 KERNEL_DIR="$SCRIPT_DIR/kernel"
 SUSFS_PATCH="$SCRIPT_DIR/susfs-2.0.0.patch"
 
@@ -187,7 +187,7 @@ echo "Running fix-susfs-rejections.sh to apply rejected hunks..."
 echo ""
 
 # Source the fix script (it sets FIXES_FAILED variable)
-source "$SCRIPT_DIR/fix-susfs-rejections.sh"
+source "$SCRIPT_DIR/scripts/fix-susfs-rejections.sh"
 
 # Check if fixes failed
 if [ "${FIXES_FAILED:-1}" -ne 0 ]; then
@@ -206,7 +206,7 @@ echo "Running apply-ksu-hooks.sh to apply 7 manual hooks..."
 echo ""
 
 # Source the hooks script (it sets HOOKS_FAILED variable)
-source "$SCRIPT_DIR/apply-ksu-hooks.sh"
+source "$SCRIPT_DIR/scripts/apply-ksu-hooks.sh"
 
 # Check if hooks failed
 if [ "$HOOKS_FAILED" -ne 0 ]; then
