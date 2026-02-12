@@ -2,3 +2,17 @@
 .idea/
 
 __pycache__/
+
+# Generated version files (computed dynamically)
+ksu_version.txt
+ksu_legacy_sha.txt
+
+# Build artifacts
+kernel/
+clang/
+clang-cache/
+out/
+outw/
+AnyKernel3/
+*.zip
+KernelSU-Next-SUSFS-kernelv4.19/

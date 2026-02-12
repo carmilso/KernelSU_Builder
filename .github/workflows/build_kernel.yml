@@ -117,9 +117,6 @@ jobs:
       - name: Set KERNELSU environment variable to true
         run: echo "KERNELSU=true" >> $GITHUB_ENV
 
-      - name: Set KERNELSU_VERSION environment variable
-        run: echo "KERNELSU_VERSION=$(cat ksu_version.txt)" >> $GITHUB_ENV
-
       - name: Check if SUSFS is enabled for this version
         id: check-susfs
         run: |
@@ -149,6 +146,14 @@ jobs:
         run: |
           chmod +x kernelSU.sh
           ./kernelSU.sh
+
+      - name: Extract KernelSU version
+        run: |
+          chmod +x scripts/get-ksu-version.sh
+          ./scripts/get-ksu-version.sh
+          
+      - name: Set KERNELSU_VERSION environment variable
+        run: echo "KERNELSU_VERSION=$(cat ksu_version.txt)" >> $GITHUB_ENV
 
       - name: Apply SUSFS patches and hooks
         if: steps.check-susfs.outputs.susfs_enabled == 'true'
@@ -269,7 +274,7 @@ jobs:
       - name: Set ZIP_NO_KSU and ZIP_KSU environment variables
         run: |
           echo "ZIP_NO_KSU=${{ env.VERSION }}-NoKernelSU.zip" >> $GITHUB_ENV
-          echo "ZIP_KSU=${{ env.VERSION }}-KernelSU-Next-$(cat ksu_version.txt).zip" >> $GITHUB_ENV
+          echo "ZIP_KSU=${{ env.VERSION }}-KernelSU-Next-${{ env.KERNELSU_VERSION }}.zip" >> $GITHUB_ENV
 
       - name: Make AnyKernel3 zip
         run: |
