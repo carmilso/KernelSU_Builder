@@ -113,12 +113,18 @@ if [ "$KSU_COMMIT_COUNT" -gt 0 ]; then
   # Formula matches the SUSFS variant's Kbuild: 30000 + commit_count + 60
   KSU_COMPUTED_VERSION=$((30000 + KSU_COMMIT_COUNT + 60))
 
-  # For the tag: try the driver repo first, then construct from the latest commit
+  # For the tag: try the driver repo first, then construct from the computed version
   KSU_TAG=$(git -C "$DRIVER_DIR" describe --tags --abbrev=0 2>/dev/null || true)
   if [ -z "$KSU_TAG" ]; then
-    # Driver repo has no tags — construct a version tag from the short commit hash
+    # Driver repo has no tags — construct a meaningful version from the numeric value
+    # Format: 3.0-susfs-<offset> where offset = commits + 60
+    # Example: 32941 -> 3.0-susfs-2941 (showing 2941 commits beyond base 30000)
     KSU_SHORT_HASH=$(git -C "$DRIVER_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")
-    KSU_TAG="v1.0-susfs-${KSU_SHORT_HASH}"
+    KSU_OFFSET=$((KSU_COMMIT_COUNT + 60))
+    KSU_TAG="3.0-susfs-${KSU_OFFSET}-${KSU_SHORT_HASH}"
+  else
+    # Remove 'v' prefix if present (workflow adds it back)
+    KSU_TAG="${KSU_TAG#v}"
   fi
 
   echo "Setting KSU version in Kbuild:"
@@ -144,7 +150,7 @@ if [ "$KSU_COMMIT_COUNT" -gt 0 ]; then
   echo "KSU version saved to ksu_version.txt"
 else
   echo -e "${YELLOW}WARNING: Could not determine KSU commit count. Version will use defaults.${NC}"
-  echo "v1.0-susfs-unknown" > "$SCRIPT_DIR/ksu_version.txt"
+  echo "1.0-susfs-unknown" > "$SCRIPT_DIR/ksu_version.txt"
 fi
 
 # =====================================================================

@@ -54,6 +54,8 @@ if [ -d "$KERNEL_DIR/drivers/kernelsu/.git" ]; then
     KSU_VERSION=$(cd "$KERNEL_DIR/drivers/kernelsu" && git describe --tags --always 2>/dev/null || echo "")
 
     if [ -n "$KSU_VERSION" ]; then
+        # Remove 'v' prefix if present (workflow adds it back)
+        KSU_VERSION="${KSU_VERSION#v}"
         echo -e "${GREEN}  ✓ Version from git: $KSU_VERSION${NC}"
         echo "$KSU_VERSION" > "$VERSION_FILE"
         echo ""
@@ -69,6 +71,8 @@ echo "  Method: Kbuild fallback values"
 KSU_TAG=$(grep "^KSU_VERSION_TAG_FALLBACK :=" "$KBUILD_FILE" | sed 's/^KSU_VERSION_TAG_FALLBACK := //' || echo "")
 
 if [ -n "$KSU_TAG" ] && [ "$KSU_TAG" != "v0.0.1" ]; then
+    # Remove 'v' prefix if present (workflow adds it back)
+    KSU_TAG="${KSU_TAG#v}"
     echo -e "${GREEN}  ✓ Version from Kbuild: $KSU_TAG${NC}"
     echo "$KSU_TAG" > "$VERSION_FILE"
 else
@@ -78,11 +82,11 @@ else
     if [ "$KSU_VERSION_NUM" != "1" ]; then
         # For SUSFS variants, version is usually 30000 + commits + 60
         # We can't reverse-compute the exact tag, but we can show the version
-        KSU_TAG="v1.0-build-${KSU_VERSION_NUM}"
+        KSU_TAG="1.0-build-${KSU_VERSION_NUM}"
         echo -e "${YELLOW}  ⚠ Using computed version: $KSU_TAG${NC}"
     else
         # Ultimate fallback
-        KSU_TAG="v1.0-unknown"
+        KSU_TAG="1.0-unknown"
         echo -e "${YELLOW}  ⚠ Using fallback version: $KSU_TAG${NC}"
     fi
 
