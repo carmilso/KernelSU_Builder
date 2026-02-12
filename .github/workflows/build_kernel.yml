@@ -10,7 +10,7 @@ on:
         default: false
         type: boolean
   repository_dispatch:
-    types: [trigger-KernelSU-build]
+    types: [trigger-KernelSU-build, trigger-dependency-update]
 
 jobs:
   build:

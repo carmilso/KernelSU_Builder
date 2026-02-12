@@ -3,9 +3,10 @@
 
 __pycache__/
 
-# Generated version files (computed dynamically)
+# Generated version files (computed dynamically at build time)
 ksu_version.txt
-ksu_legacy_sha.txt
+
+# NOTE: .tracked_versions/ is NOT ignored - it must be committed to track dependency updates
 
 # Build artifacts
 kernel/

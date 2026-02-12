@@ -1,83 +1,280 @@
-name: Watch KernelSU Next (Legacy)
+name: Watch Dependencies for Updates
 on:
   schedule:
     - cron: "0 */6 * * *" # Run every 6 hours
   workflow_dispatch: # Allows manual triggering
 
 jobs:
-  check-legacy:
+  check-updates:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install jq
-        run: sudo apt-get install -y jq
-
-      - name: Check for new legacy branch commits
-        id: check
+      - name: Install dependencies
         run: |
-          # Get the latest commit SHA on the legacy branch
-          LEGACY_SHA=$(curl --silent "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/branches/legacy" | jq -r '.commit.sha')
+          sudo apt-get update
+          sudo apt-get install -y jq python3-yaml
 
-          if [ -z "$LEGACY_SHA" ] || [ "$LEGACY_SHA" = "null" ]; then
-            echo "::error::Failed to fetch legacy branch SHA"
-            exit 1
+      - name: Check LineageOS kernel updates (lineage-23.0)
+        id: check_lineage_23
+        run: |
+          REPO="LineageOS/android_kernel_oneplus_sm8250"
+          BRANCH="lineage-23.0"
+          
+          LATEST_SHA=$(curl --silent "https://api.github.com/repos/${REPO}/branches/${BRANCH}" | jq -r '.commit.sha')
+          
+          if [ -z "$LATEST_SHA" ] || [ "$LATEST_SHA" = "null" ]; then
+            echo "::warning::Failed to fetch ${REPO} ${BRANCH} SHA"
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          TRACKING_FILE=".tracked_versions/lineage-23.0.sha"
+          mkdir -p .tracked_versions
+          CURRENT_SHA=$(cat "$TRACKING_FILE" 2>/dev/null || echo "none")
+          
+          echo "LineageOS 23.0 - Latest SHA: ${LATEST_SHA:0:7}"
+          echo "LineageOS 23.0 - Current SHA: ${CURRENT_SHA:0:7}"
+          
+          if [ "$LATEST_SHA" != "$CURRENT_SHA" ]; then
+            echo "$LATEST_SHA" > "$TRACKING_FILE"
+            echo "update_needed=true" >> $GITHUB_OUTPUT
+            echo "repo=LineageOS kernel (lineage-23.0)" >> $GITHUB_OUTPUT
+            echo "sha=${LATEST_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "✓ Update detected for LineageOS 23.0"
+          else
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+            echo "• No changes in LineageOS 23.0"
           fi
 
-          CURRENT_SHA=$(cat ksu_legacy_sha.txt 2>/dev/null || echo "none")
-          echo "Latest legacy SHA: $LEGACY_SHA"
-          echo "Current SHA: $CURRENT_SHA"
+      - name: Check LineageOS kernel updates (lineage-23.2)
+        id: check_lineage_232
+        run: |
+          REPO="LineageOS/android_kernel_oneplus_sm8250"
+          BRANCH="lineage-23.2"
+          
+          LATEST_SHA=$(curl --silent "https://api.github.com/repos/${REPO}/branches/${BRANCH}" | jq -r '.commit.sha')
+          
+          if [ -z "$LATEST_SHA" ] || [ "$LATEST_SHA" = "null" ]; then
+            echo "::warning::Failed to fetch ${REPO} ${BRANCH} SHA"
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          TRACKING_FILE=".tracked_versions/lineage-23.2.sha"
+          mkdir -p .tracked_versions
+          CURRENT_SHA=$(cat "$TRACKING_FILE" 2>/dev/null || echo "none")
+          
+          echo "LineageOS 23.2 - Latest SHA: ${LATEST_SHA:0:7}"
+          echo "LineageOS 23.2 - Current SHA: ${CURRENT_SHA:0:7}"
+          
+          if [ "$LATEST_SHA" != "$CURRENT_SHA" ]; then
+            echo "$LATEST_SHA" > "$TRACKING_FILE"
+            echo "update_needed=true" >> $GITHUB_OUTPUT
+            echo "repo=LineageOS kernel (lineage-23.2)" >> $GITHUB_OUTPUT
+            echo "sha=${LATEST_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "✓ Update detected for LineageOS 23.2"
+          else
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+            echo "• No changes in LineageOS 23.2"
+          fi
 
-          if [ "$LEGACY_SHA" != "$CURRENT_SHA" ]; then
+      - name: Check KernelSU-Next updates (legacy branch)
+        id: check_ksu_next
+        run: |
+          REPO="KernelSU-Next/KernelSU-Next"
+          BRANCH="legacy"
+          
+          LATEST_SHA=$(curl --silent "https://api.github.com/repos/${REPO}/branches/${BRANCH}" | jq -r '.commit.sha')
+          
+          if [ -z "$LATEST_SHA" ] || [ "$LATEST_SHA" = "null" ]; then
+            echo "::error::Failed to fetch ${REPO} ${BRANCH} SHA"
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          TRACKING_FILE=".tracked_versions/kernelsu-next-legacy.sha"
+          mkdir -p .tracked_versions
+          CURRENT_SHA=$(cat "$TRACKING_FILE" 2>/dev/null || echo "none")
+          
+          echo "KernelSU-Next Legacy - Latest SHA: ${LATEST_SHA:0:7}"
+          echo "KernelSU-Next Legacy - Current SHA: ${CURRENT_SHA:0:7}"
+          
+          if [ "$LATEST_SHA" != "$CURRENT_SHA" ]; then
             # Find the latest -legacy tag for version naming
-            LEGACY_TAG=$(curl --silent "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/tags?per_page=50" \
+            LEGACY_TAG=$(curl --silent "https://api.github.com/repos/${REPO}/tags?per_page=50" \
               | jq -r '[.[] | select(.name | endswith("-legacy"))][0].name // empty')
-
+            
             if [ -z "$LEGACY_TAG" ]; then
-              # Fallback: use short SHA as version
-              KSU_VERSION="legacy-${LEGACY_SHA:0:7}"
+              KSU_VERSION="legacy-${LATEST_SHA:0:7}"
             else
               # Check if branch is ahead of the tag
-              COMPARE=$(curl --silent "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/compare/${LEGACY_TAG}...${LEGACY_SHA}")
+              COMPARE=$(curl --silent "https://api.github.com/repos/${REPO}/compare/${LEGACY_TAG}...${LATEST_SHA}")
               AHEAD_BY=$(echo "$COMPARE" | jq -r '.ahead_by // 0')
               if [ "$AHEAD_BY" -gt 0 ] 2>/dev/null; then
-                KSU_VERSION="${LEGACY_TAG}+${LEGACY_SHA:0:7}"
+                KSU_VERSION="${LEGACY_TAG}+${LATEST_SHA:0:7}"
               else
                 KSU_VERSION="$LEGACY_TAG"
               fi
             fi
-
-            echo "sha=$LEGACY_SHA" >> $GITHUB_OUTPUT
-            echo "version=$KSU_VERSION" >> $GITHUB_OUTPUT
+            
+            echo "$LATEST_SHA" > "$TRACKING_FILE"
             echo "update_needed=true" >> $GITHUB_OUTPUT
-            echo "New version: $KSU_VERSION"
+            echo "repo=KernelSU-Next (legacy)" >> $GITHUB_OUTPUT
+            echo "version=$KSU_VERSION" >> $GITHUB_OUTPUT
+            echo "sha=${LATEST_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "✓ Update detected for KernelSU-Next: $KSU_VERSION"
           else
             echo "update_needed=false" >> $GITHUB_OUTPUT
-            echo "No changes detected."
+            echo "• No changes in KernelSU-Next legacy"
           fi
 
-      - name: Update tracking files
-        if: steps.check.outputs.update_needed == 'true'
+      - name: Check KernelSU-Next-SUSFS updates (legacy branch)
+        id: check_ksu_susfs
         run: |
-          echo "${{ steps.check.outputs.sha }}" > ksu_legacy_sha.txt
-          echo "${{ steps.check.outputs.version }}" > ksu_version.txt
+          REPO="wshamroukh/KernelSU-Next-SUSFS-kernelv4.19"
+          BRANCH="legacy"
+          
+          LATEST_SHA=$(curl --silent "https://api.github.com/repos/${REPO}/branches/${BRANCH}" | jq -r '.commit.sha')
+          
+          if [ -z "$LATEST_SHA" ] || [ "$LATEST_SHA" = "null" ]; then
+            echo "::warning::Failed to fetch ${REPO} ${BRANCH} SHA"
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          TRACKING_FILE=".tracked_versions/kernelsu-susfs-legacy.sha"
+          mkdir -p .tracked_versions
+          CURRENT_SHA=$(cat "$TRACKING_FILE" 2>/dev/null || echo "none")
+          
+          echo "KernelSU-SUSFS Legacy - Latest SHA: ${LATEST_SHA:0:7}"
+          echo "KernelSU-SUSFS Legacy - Current SHA: ${CURRENT_SHA:0:7}"
+          
+          if [ "$LATEST_SHA" != "$CURRENT_SHA" ]; then
+            echo "$LATEST_SHA" > "$TRACKING_FILE"
+            echo "update_needed=true" >> $GITHUB_OUTPUT
+            echo "repo=KernelSU-Next-SUSFS (legacy)" >> $GITHUB_OUTPUT
+            echo "sha=${LATEST_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "✓ Update detected for KernelSU-Next-SUSFS"
+          else
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+            echo "• No changes in KernelSU-Next-SUSFS legacy"
+          fi
 
-      - name: Commit and push
-        if: steps.check.outputs.update_needed == 'true'
+      - name: Check SUSFS patch updates
+        id: check_susfs_patch
+        run: |
+          chmod +x scripts/check-susfs-version.sh
+          
+          # Run the SUSFS version check script
+          if ./scripts/check-susfs-version.sh > /tmp/susfs_check.log 2>&1; then
+            TRACKING_FILE=".tracked_versions/susfs-patch.version"
+            mkdir -p .tracked_versions
+            
+            # Extract current patch version from filename
+            CURRENT_VERSION=$(cat "$TRACKING_FILE" 2>/dev/null || echo "none")
+            CURRENT_PATCH=$(ls susfs-*.patch 2>/dev/null | head -1 || echo "none")
+            
+            echo "SUSFS Patch - Current: $CURRENT_VERSION"
+            
+            # Check if script found a newer version (it would have displayed a message)
+            if grep -q "New SUSFS version available" /tmp/susfs_check.log 2>/dev/null; then
+              NEW_VERSION=$(grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+' /tmp/susfs_check.log | head -1)
+              echo "$NEW_VERSION" > "$TRACKING_FILE"
+              echo "update_needed=true" >> $GITHUB_OUTPUT
+              echo "repo=SUSFS patch" >> $GITHUB_OUTPUT
+              echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+              echo "✓ Update detected for SUSFS patch: v$NEW_VERSION"
+            else
+              echo "update_needed=false" >> $GITHUB_OUTPUT
+              echo "• No changes in SUSFS patch"
+            fi
+          else
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+            echo "::warning::SUSFS version check failed"
+            cat /tmp/susfs_check.log || true
+          fi
+
+      - name: Determine if any updates are needed
+        id: check_any_updates
+        run: |
+          UPDATE_DETECTED=false
+          UPDATE_LIST=""
+          
+          if [ "${{ steps.check_lineage_23.outputs.update_needed }}" = "true" ]; then
+            UPDATE_DETECTED=true
+            UPDATE_LIST="$UPDATE_LIST\n- LineageOS kernel (lineage-23.0): ${{ steps.check_lineage_23.outputs.sha }}"
+          fi
+          
+          if [ "${{ steps.check_lineage_232.outputs.update_needed }}" = "true" ]; then
+            UPDATE_DETECTED=true
+            UPDATE_LIST="$UPDATE_LIST\n- LineageOS kernel (lineage-23.2): ${{ steps.check_lineage_232.outputs.sha }}"
+          fi
+          
+          if [ "${{ steps.check_ksu_next.outputs.update_needed }}" = "true" ]; then
+            UPDATE_DETECTED=true
+            UPDATE_LIST="$UPDATE_LIST\n- KernelSU-Next (legacy): ${{ steps.check_ksu_next.outputs.version }}"
+          fi
+          
+          if [ "${{ steps.check_ksu_susfs.outputs.update_needed }}" = "true" ]; then
+            UPDATE_DETECTED=true
+            UPDATE_LIST="$UPDATE_LIST\n- KernelSU-Next-SUSFS (legacy): ${{ steps.check_ksu_susfs.outputs.sha }}"
+          fi
+          
+          if [ "${{ steps.check_susfs_patch.outputs.update_needed }}" = "true" ]; then
+            UPDATE_DETECTED=true
+            UPDATE_LIST="$UPDATE_LIST\n- SUSFS patch: v${{ steps.check_susfs_patch.outputs.version }}"
+          fi
+          
+          echo "update_detected=$UPDATE_DETECTED" >> $GITHUB_OUTPUT
+          echo "update_list<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$UPDATE_LIST" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          if [ "$UPDATE_DETECTED" = "true" ]; then
+            echo ""
+            echo "========================================"
+            echo "  Updates Detected!"
+            echo "========================================"
+            echo -e "$UPDATE_LIST"
+            echo "========================================"
+          else
+            echo ""
+            echo "========================================"
+            echo "  No updates detected"
+            echo "========================================"
+          fi
+
+      - name: Commit and push tracking files
+        if: steps.check_any_updates.outputs.update_detected == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add ksu_legacy_sha.txt ksu_version.txt
-          BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          git diff --quiet && git diff --staged --quiet || \
-            (git commit -m "Update KernelSU-Next legacy to ${{ steps.check.outputs.version }}" && \
-             git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:$BRANCH_NAME)
+          
+          # Add all tracking files
+          git add .tracked_versions/
+          
+          # Create commit message
+          COMMIT_MSG="chore: update dependency tracking
+          
+          Updates detected:${{ steps.check_any_updates.outputs.update_list }}
+          
+          This commit will trigger a new kernel build."
+          
+          # Commit and push if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "$COMMIT_MSG"
+            git push
+            echo "✓ Tracking files updated and pushed"
+          fi
 
       - name: Trigger Build Kernel workflow
-        if: steps.check.outputs.update_needed == 'true'
+        if: steps.check_any_updates.outputs.update_detected == 'true'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
-          event-type: trigger-KernelSU-build
+          event-type: trigger-dependency-update
