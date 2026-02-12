@@ -8,4 +8,3 @@ json_string=$(echo "$json" | jq -rC tostring)
 
 # Echo the stringified JSON to the GitHub environment variable buildsettings
 echo "buildsettings=$json_string" >>$GITHUB_ENV
-

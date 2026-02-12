@@ -45,4 +45,3 @@ echo -e "\033[32m$anykernel3\033[0m"
 
 # Execute the command
 eval "$anykernel3"
-

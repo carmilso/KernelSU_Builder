@@ -41,4 +41,3 @@ if [ "${KERNELSU}" == "true" ]; then
 else
   mv $target "${GITHUB_WORKSPACE}/outw/false"
 fi
-

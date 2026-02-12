@@ -49,4 +49,3 @@ done
 echo "$build_commands" | while read -r command; do
   eval "$command"
 done
-

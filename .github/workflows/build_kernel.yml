@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       build_without_ksu:
-        description: 'Build kernel without KernelSU (for debugging/testing)'
+        description: "Build kernel without KernelSU (for debugging/testing)"
         required: false
         default: false
         type: boolean
@@ -151,7 +151,7 @@ jobs:
         run: |
           chmod +x scripts/get-ksu-version.sh
           ./scripts/get-ksu-version.sh
-          
+
       - name: Set KERNELSU_VERSION environment variable
         run: echo "KERNELSU_VERSION=$(cat ksu_version.txt)" >> $GITHUB_ENV
 
@@ -169,7 +169,7 @@ jobs:
         run: |
           set -e  # Exit on any error
           cd kernel
-          
+
           # Read config and build commands from sources.yaml
           json=$(python -c "import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)" < ../sources.yaml)
           config_cmd=$(echo "$json" | jq -r --arg v "$VERSION" '.[$v].config[]')
@@ -187,7 +187,7 @@ jobs:
           # Step 3: Build
           echo "=== Building kernel with KernelSU + SUSFS ==="
           eval "$build_cmd"
-          
+
           # Step 5: Show ccache stats
           echo "=== ccache statistics ==="
           ccache -s
@@ -200,7 +200,7 @@ jobs:
         run: |
           set -e  # Exit on any error
           cd kernel
-          
+
           # Read config and build commands from sources.yaml
           json=$(python -c "import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)" < ../sources.yaml)
           config_cmd=$(echo "$json" | jq -r --arg v "$VERSION" '.[$v].config[]')
@@ -235,7 +235,7 @@ jobs:
           # Step 5: Build
           echo "=== Building kernel ==="
           eval "$build_cmd"
-          
+
           # Step 6: Show ccache stats
           echo "=== ccache statistics ==="
           ccache -s
@@ -337,7 +337,7 @@ jobs:
             **Available Downloads:**
             - KernelSU-enabled kernel (recommended)
           EOF
-          
+
           if [ -f "${{ github.workspace }}/${{ env.ZIP_NO_KSU }}" ]; then
             echo "            - Vanilla kernel without KernelSU (optional, for debugging)" >> release_body.md
           fi
@@ -360,12 +360,12 @@ jobs:
             **Available Downloads:**
             - KernelSU-enabled kernel (recommended)
           EOF
-          
+
           if [ -f "${{ github.workspace }}/${{ env.ZIP_NO_KSU }}" ]; then
             echo "            - Vanilla kernel without KernelSU (optional, for debugging)" >> release_body.md
           fi
           fi
-          
+
           # Add SUSFS version check warning if new version detected
           if [ "${{ steps.check-susfs-version.outputs.NEW_SUSFS_VERSION }}" = "true" ]; then
             echo "" >> release_body.md
@@ -373,10 +373,10 @@ jobs:
             echo "" >> release_body.md
             echo "⚠️ **Note:** A newer SUSFS patch version may be available. Check the [SUSFS repository](${{ steps.check-susfs-version.outputs.SUSFS_UPSTREAM_URL }}) for updates." >> release_body.md
           fi
-          
+
           # Add build settings
           cat >> release_body.md << 'EOF'
-          
+
           <details>
             <summary>Build Settings</summary>
             

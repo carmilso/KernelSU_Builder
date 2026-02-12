@@ -48,4 +48,3 @@ done
 echo "$custom_commands" | while read -r command; do
   eval "$command"
 done
-

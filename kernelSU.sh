@@ -47,4 +47,3 @@ echo "$kernelSU_commands" | while read -r command; do
   command=${command//kernelsu-version/$kernelsu_version}
   eval "$command"
 done
-

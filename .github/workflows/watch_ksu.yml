@@ -21,22 +21,22 @@ jobs:
         run: |
           REPO="LineageOS/android_kernel_oneplus_sm8250"
           BRANCH="lineage-23.0"
-          
+
           LATEST_SHA=$(curl --silent "https://api.github.com/repos/${REPO}/branches/${BRANCH}" | jq -r '.commit.sha')
-          
+
           if [ -z "$LATEST_SHA" ] || [ "$LATEST_SHA" = "null" ]; then
             echo "::warning::Failed to fetch ${REPO} ${BRANCH} SHA"
             echo "update_needed=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           TRACKING_FILE=".tracked_versions/lineage-23.0.sha"
           mkdir -p .tracked_versions
           CURRENT_SHA=$(cat "$TRACKING_FILE" 2>/dev/null || echo "none")
-          
+
           echo "LineageOS 23.0 - Latest SHA: ${LATEST_SHA:0:7}"
           echo "LineageOS 23.0 - Current SHA: ${CURRENT_SHA:0:7}"
-          
+
           if [ "$LATEST_SHA" != "$CURRENT_SHA" ]; then
             echo "$LATEST_SHA" > "$TRACKING_FILE"
             echo "update_needed=true" >> $GITHUB_OUTPUT
@@ -53,22 +53,22 @@ jobs:
         run: |
           REPO="LineageOS/android_kernel_oneplus_sm8250"
           BRANCH="lineage-23.2"
-          
+
           LATEST_SHA=$(curl --silent "https://api.github.com/repos/${REPO}/branches/${BRANCH}" | jq -r '.commit.sha')
-          
+
           if [ -z "$LATEST_SHA" ] || [ "$LATEST_SHA" = "null" ]; then
             echo "::warning::Failed to fetch ${REPO} ${BRANCH} SHA"
             echo "update_needed=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           TRACKING_FILE=".tracked_versions/lineage-23.2.sha"
           mkdir -p .tracked_versions
           CURRENT_SHA=$(cat "$TRACKING_FILE" 2>/dev/null || echo "none")
-          
+
           echo "LineageOS 23.2 - Latest SHA: ${LATEST_SHA:0:7}"
           echo "LineageOS 23.2 - Current SHA: ${CURRENT_SHA:0:7}"
-          
+
           if [ "$LATEST_SHA" != "$CURRENT_SHA" ]; then
             echo "$LATEST_SHA" > "$TRACKING_FILE"
             echo "update_needed=true" >> $GITHUB_OUTPUT
@@ -85,22 +85,22 @@ jobs:
         run: |
           REPO="KernelSU-Next/KernelSU-Next"
           BRANCH="legacy"
-          
+
           LATEST_SHA=$(curl --silent "https://api.github.com/repos/${REPO}/branches/${BRANCH}" | jq -r '.commit.sha')
-          
+
           if [ -z "$LATEST_SHA" ] || [ "$LATEST_SHA" = "null" ]; then
             echo "::error::Failed to fetch ${REPO} ${BRANCH} SHA"
             echo "update_needed=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           TRACKING_FILE=".tracked_versions/kernelsu-next-legacy.sha"
           mkdir -p .tracked_versions
           CURRENT_SHA=$(cat "$TRACKING_FILE" 2>/dev/null || echo "none")
-          
+
           echo "KernelSU-Next Legacy - Latest SHA: ${LATEST_SHA:0:7}"
           echo "KernelSU-Next Legacy - Current SHA: ${CURRENT_SHA:0:7}"
-          
+
           if [ "$LATEST_SHA" != "$CURRENT_SHA" ]; then
             # Find the latest -legacy tag for version naming
             LEGACY_TAG=$(curl --silent "https://api.github.com/repos/${REPO}/tags?per_page=50" \
@@ -135,22 +135,22 @@ jobs:
         run: |
           REPO="wshamroukh/KernelSU-Next-SUSFS-kernelv4.19"
           BRANCH="legacy"
-          
+
           LATEST_SHA=$(curl --silent "https://api.github.com/repos/${REPO}/branches/${BRANCH}" | jq -r '.commit.sha')
-          
+
           if [ -z "$LATEST_SHA" ] || [ "$LATEST_SHA" = "null" ]; then
             echo "::warning::Failed to fetch ${REPO} ${BRANCH} SHA"
             echo "update_needed=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           TRACKING_FILE=".tracked_versions/kernelsu-susfs-legacy.sha"
           mkdir -p .tracked_versions
           CURRENT_SHA=$(cat "$TRACKING_FILE" 2>/dev/null || echo "none")
-          
+
           echo "KernelSU-SUSFS Legacy - Latest SHA: ${LATEST_SHA:0:7}"
           echo "KernelSU-SUSFS Legacy - Current SHA: ${CURRENT_SHA:0:7}"
-          
+
           if [ "$LATEST_SHA" != "$CURRENT_SHA" ]; then
             echo "$LATEST_SHA" > "$TRACKING_FILE"
             echo "update_needed=true" >> $GITHUB_OUTPUT
@@ -166,7 +166,7 @@ jobs:
         id: check_susfs_patch
         run: |
           chmod +x scripts/check-susfs-version.sh
-          
+
           # Run the SUSFS version check script
           if ./scripts/check-susfs-version.sh > /tmp/susfs_check.log 2>&1; then
             TRACKING_FILE=".tracked_versions/susfs-patch.version"
@@ -201,37 +201,37 @@ jobs:
         run: |
           UPDATE_DETECTED=false
           UPDATE_LIST=""
-          
+
           if [ "${{ steps.check_lineage_23.outputs.update_needed }}" = "true" ]; then
             UPDATE_DETECTED=true
             UPDATE_LIST="$UPDATE_LIST\n- LineageOS kernel (lineage-23.0): ${{ steps.check_lineage_23.outputs.sha }}"
           fi
-          
+
           if [ "${{ steps.check_lineage_232.outputs.update_needed }}" = "true" ]; then
             UPDATE_DETECTED=true
             UPDATE_LIST="$UPDATE_LIST\n- LineageOS kernel (lineage-23.2): ${{ steps.check_lineage_232.outputs.sha }}"
           fi
-          
+
           if [ "${{ steps.check_ksu_next.outputs.update_needed }}" = "true" ]; then
             UPDATE_DETECTED=true
             UPDATE_LIST="$UPDATE_LIST\n- KernelSU-Next (legacy): ${{ steps.check_ksu_next.outputs.version }}"
           fi
-          
+
           if [ "${{ steps.check_ksu_susfs.outputs.update_needed }}" = "true" ]; then
             UPDATE_DETECTED=true
             UPDATE_LIST="$UPDATE_LIST\n- KernelSU-Next-SUSFS (legacy): ${{ steps.check_ksu_susfs.outputs.sha }}"
           fi
-          
+
           if [ "${{ steps.check_susfs_patch.outputs.update_needed }}" = "true" ]; then
             UPDATE_DETECTED=true
             UPDATE_LIST="$UPDATE_LIST\n- SUSFS patch: v${{ steps.check_susfs_patch.outputs.version }}"
           fi
-          
+
           echo "update_detected=$UPDATE_DETECTED" >> $GITHUB_OUTPUT
           echo "update_list<<EOF" >> $GITHUB_OUTPUT
           echo -e "$UPDATE_LIST" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-          
+
           if [ "$UPDATE_DETECTED" = "true" ]; then
             echo ""
             echo "========================================"
@@ -251,17 +251,17 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          
+
           # Add all tracking files
           git add .tracked_versions/
-          
+
           # Create commit message
           COMMIT_MSG="chore: update dependency tracking
-          
+
           Updates detected:${{ steps.check_any_updates.outputs.update_list }}
-          
+
           This commit will trigger a new kernel build."
-          
+
           # Commit and push if there are changes
           if git diff --staged --quiet; then
             echo "No changes to commit"
