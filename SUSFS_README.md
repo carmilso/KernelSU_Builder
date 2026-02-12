@@ -174,6 +174,41 @@ Checks for new SUSFS patch versions:
 - Reports differences
 - Sets GitHub Actions output variables for workflow notifications
 
+## Build Options
+
+### Vanilla Kernel (Optional)
+
+By default, the workflow **only builds the KernelSU-enabled kernel** to save time and resources. The vanilla kernel (without KernelSU) is now **optional** and disabled by default.
+
+#### When to Build Vanilla Kernel
+
+Enable vanilla kernel build for:
+- **Debugging**: Compare behavior between vanilla and KernelSU versions
+- **Testing**: Verify base kernel functionality
+- **Troubleshooting**: Isolate issues to kernel base vs KernelSU
+
+#### How to Enable
+
+1. **Via GitHub UI** (Manual workflow):
+   - Go to Actions tab → KernelSU Next Builder
+   - Click "Run workflow"
+   - Check the box "Build kernel without KernelSU"
+   - Click "Run workflow"
+
+2. **Default Behavior**:
+   - Push events: Only KernelSU kernel ✓
+   - Automatic triggers: Only KernelSU kernel ✓
+   - Manual trigger (unchecked): Only KernelSU kernel ✓
+
+#### Performance Impact
+
+| Build Mode | Compilation Time | Actions Minutes | Output ZIPs |
+|------------|-----------------|-----------------|-------------|
+| Default (KernelSU only) | ~30-45 min | 1x | 1 per version |
+| With vanilla kernel | ~60-90 min | 2x | 2 per version |
+
+**Savings**: ~50% reduction in build time and CI/CD minutes!
+
 ## Workflow Integration
 
 The GitHub Actions workflow automatically detects SUSFS configuration:
