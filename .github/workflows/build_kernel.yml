@@ -3,6 +3,12 @@ name: KernelSU Next Builder - OnePlus 8T
 on:
   push:
   workflow_dispatch:
+    inputs:
+      build_without_ksu:
+        description: 'Build kernel without KernelSU (for debugging/testing)'
+        required: false
+        default: false
+        type: boolean
   repository_dispatch:
     types: [trigger-KernelSU-build]
 
@@ -19,6 +25,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Show build configuration
+        run: |
+          echo "=========================================="
+          echo "  Build Configuration"
+          echo "=========================================="
+          echo "Version: ${{ matrix.version }}"
+          echo "Build without KernelSU: ${{ inputs.build_without_ksu || 'false' }}"
+          echo "=========================================="
 
       - name: Cache apt packages
         uses: awalsh128/cache-apt-pkgs-action@latest
@@ -74,7 +89,8 @@ jobs:
           echo "Using clang:"
           clang --version | head -1
 
-      - name: Compile kernel
+      - name: Compile kernel without KernelSU (optional)
+        if: inputs.build_without_ksu == true
         env:
           KBUILD_BUILD_HOST: Github-Action
           KBUILD_BUILD_USER: KernelSU_Builder
@@ -87,11 +103,13 @@ jobs:
           mkdir -p outw/false outw/true
 
       - name: Move kernel without KernelSU support to output directory
+        if: inputs.build_without_ksu == true
         run: |
           chmod +x move.sh
           ./move.sh
 
       - name: Clean build environment
+        if: inputs.build_without_ksu == true
         run: |
           chmod +x clean.sh
           ./clean.sh
@@ -310,7 +328,14 @@ jobs:
             **SUSFS Configuration:**
             - Configure SUSFS via KernelSU Manager app or ksud CLI
             - See [SUSFS documentation](https://github.com/sidex15/SUSFS4KSU) for usage guide
+            
+            **Available Downloads:**
+            - KernelSU-enabled kernel (recommended)
           EOF
+          
+          if [ -f "${{ github.workspace }}/${{ env.ZIP_NO_KSU }}" ]; then
+            echo "            - Vanilla kernel without KernelSU (optional, for debugging)" >> release_body.md
+          fi
           else
             cat > release_body.md << 'EOF'
             **Info:**
@@ -326,7 +351,14 @@ jobs:
             **Installation:**
             - Download the zip matching your ROM version.
             - Flash in recovery using sideload or any other method.
+            
+            **Available Downloads:**
+            - KernelSU-enabled kernel (recommended)
           EOF
+          
+          if [ -f "${{ github.workspace }}/${{ env.ZIP_NO_KSU }}" ]; then
+            echo "            - Vanilla kernel without KernelSU (optional, for debugging)" >> release_body.md
+          fi
           fi
           
           # Add SUSFS version check warning if new version detected
@@ -349,12 +381,21 @@ jobs:
           </details>
           EOF
 
+      - name: Prepare release files list
+        id: release-files
+        run: |
+          FILES="${{ github.workspace }}/${{ env.ZIP_KSU }}"
+          if [ -f "${{ github.workspace }}/${{ env.ZIP_NO_KSU }}" ]; then
+            FILES="${FILES}"$'\n'"${{ github.workspace }}/${{ env.ZIP_NO_KSU }}"
+          fi
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Make a release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            ${{ github.workspace }}/${{ env.ZIP_NO_KSU }}
-            ${{ github.workspace }}/${{ env.ZIP_KSU }}
+          files: ${{ steps.release-files.outputs.files }}
           token: ${{ secrets.GITHUB_TOKEN }}
           name: KernelSU Next ${{ env.KERNELSU_VERSION }} - ${{ matrix.version }}
           tag_name: v${{ env.KERNELSU_VERSION }}-${{ github.run_number }}
