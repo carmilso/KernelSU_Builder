@@ -30,9 +30,9 @@ apply_hook() {
 
   if grep -q "$marker" "$file" 2>/dev/null; then
     echo "  SKIP: Hook already present"
-    return 1  # already applied
+    return 1 # already applied
   fi
-  return 0  # needs applying
+  return 0 # needs applying
 }
 
 verify_hook() {

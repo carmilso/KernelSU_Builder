@@ -55,7 +55,7 @@ echo ""
 
 if [ "$LOCAL_HASH" = "$UPSTREAM_HASH" ]; then
   echo -e "${GREEN}✓ Local patch is up to date!${NC}"
-  echo "NEW_SUSFS_VERSION=false" >> $GITHUB_OUTPUT 2>/dev/null || true
+  echo "NEW_SUSFS_VERSION=false" >>$GITHUB_OUTPUT 2>/dev/null || true
 else
   echo -e "${YELLOW}⚠ New SUSFS patch version detected!${NC}"
   echo ""
@@ -65,8 +65,8 @@ else
   echo -e "${YELLOW}Consider updating the local patch:${NC}"
   echo "  cp $TEMP_PATCH $LOCAL_PATCH"
   echo ""
-  echo "NEW_SUSFS_VERSION=true" >> $GITHUB_OUTPUT 2>/dev/null || true
-  echo "SUSFS_UPSTREAM_URL=$UPSTREAM_URL" >> $GITHUB_OUTPUT 2>/dev/null || true
+  echo "NEW_SUSFS_VERSION=true" >>$GITHUB_OUTPUT 2>/dev/null || true
+  echo "SUSFS_UPSTREAM_URL=$UPSTREAM_URL" >>$GITHUB_OUTPUT 2>/dev/null || true
 fi
 
 # Cleanup

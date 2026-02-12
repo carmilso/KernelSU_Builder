@@ -348,7 +348,7 @@ if ! grep -q 'susfs_def\.h' fs/namei.c; then
 fi
 
 # The complex namei.c modifications are in a separate Python block
-python3 << 'PYEOF'
+python3 <<'PYEOF'
 with open('fs/namei.c', 'r') as f:
     content = f.read()
 
@@ -694,7 +694,7 @@ echo "  Continuing with fs/proc/task_mmu.c and fs/namespace.c fixes..."
 # =====================================================================
 fix_file "fs/proc/task_mmu.c" "add susfs include/extern + show_smap + pagemap modifications"
 
-python3 << 'PYEOF'
+python3 <<'PYEOF'
 with open('fs/proc/task_mmu.c', 'r') as f:
     content = f.read()
 
@@ -846,7 +846,7 @@ verify_fix "fs/proc/task_mmu.c" "susfs_def.h"
 # =====================================================================
 fix_file "fs/namespace.c" "add SUSFS includes/globals + susfs_mnt_alloc_id + modify 4 functions"
 
-python3 << 'PYEOF'
+python3 <<'PYEOF'
 with open('fs/namespace.c', 'r') as f:
     content = f.read()
 
@@ -1122,7 +1122,7 @@ fi
 fix_file "fs/susfs.c" "add susfs_try_umount + susfs_add_try_umount (sidex15 approach)"
 
 if [ -f "fs/susfs.c" ] && ! grep -q 'void susfs_try_umount' fs/susfs.c; then
-  cat >> fs/susfs.c << 'TRYUMOUNT_EOF'
+  cat >>fs/susfs.c <<'TRYUMOUNT_EOF'
 
 #ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
 static DEFINE_SPINLOCK(susfs_spin_lock_try_umount);

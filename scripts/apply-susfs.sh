@@ -172,7 +172,7 @@ echo ""
 echo "Verifying SUSFS files exist:"
 for f in fs/susfs.c include/linux/susfs.h include/linux/susfs_def.h; do
   if [ -f "$f" ]; then
-    echo -e "  ${GREEN}OK${NC}: $f ($(wc -l < "$f") lines)"
+    echo -e "  ${GREEN}OK${NC}: $f ($(wc -l <"$f") lines)"
   else
     error "$f was not created by the patch — this will cause build failure!"
   fi
@@ -247,7 +247,7 @@ step "Step 6: Verify kernel build system registration"
 # Check drivers/Makefile
 if ! grep -q 'CONFIG_KSU.*kernelsu' drivers/Makefile; then
   warning "KernelSU not registered in drivers/Makefile. Adding it now..."
-  echo 'obj-$(CONFIG_KSU) += kernelsu/' >> drivers/Makefile
+  echo 'obj-$(CONFIG_KSU) += kernelsu/' >>drivers/Makefile
   echo "Added 'obj-\$(CONFIG_KSU) += kernelsu/' to drivers/Makefile"
 else
   echo -e "${GREEN}OK${NC}: KernelSU registered in drivers/Makefile"

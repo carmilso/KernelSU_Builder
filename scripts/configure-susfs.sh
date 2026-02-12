@@ -36,27 +36,72 @@ echo ""
 
 # Enable KernelSU
 echo "=== Enabling KernelSU ==="
-scripts/config --file "$CONFIG_FILE" --enable KSU || { echo -e "${RED}ERROR: Failed to enable KSU${NC}"; exit 1; }
-scripts/config --file "$CONFIG_FILE" --disable KSU_DEBUG || { echo -e "${RED}ERROR: Failed to disable KSU_DEBUG${NC}"; exit 1; }
+scripts/config --file "$CONFIG_FILE" --enable KSU || {
+  echo -e "${RED}ERROR: Failed to enable KSU${NC}"
+  exit 1
+}
+scripts/config --file "$CONFIG_FILE" --disable KSU_DEBUG || {
+  echo -e "${RED}ERROR: Failed to disable KSU_DEBUG${NC}"
+  exit 1
+}
 
 # Force manual hook mode (non-GKI)
 echo "=== Configuring manual hooks (non-GKI) ==="
-scripts/config --file "$CONFIG_FILE" --enable KSU_MANUAL_HOOK || { echo -e "${RED}ERROR: Failed to enable KSU_MANUAL_HOOK${NC}"; exit 1; }
-scripts/config --file "$CONFIG_FILE" --disable KSU_KPROBES_HOOK || { echo -e "${RED}ERROR: Failed to disable KSU_KPROBES_HOOK${NC}"; exit 1; }
+scripts/config --file "$CONFIG_FILE" --enable KSU_MANUAL_HOOK || {
+  echo -e "${RED}ERROR: Failed to enable KSU_MANUAL_HOOK${NC}"
+  exit 1
+}
+scripts/config --file "$CONFIG_FILE" --disable KSU_KPROBES_HOOK || {
+  echo -e "${RED}ERROR: Failed to disable KSU_KPROBES_HOOK${NC}"
+  exit 1
+}
 
 # Enable SUSFS and all sub-options
 echo "=== Enabling SUSFS features ==="
-scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS || { echo -e "${RED}ERROR: Failed to enable KSU_SUSFS${NC}"; exit 1; }
-scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_SUS_PATH || { echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_SUS_PATH${NC}"; exit 1; }
-scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_SUS_MOUNT || { echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_SUS_MOUNT${NC}"; exit 1; }
-scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_SUS_KSTAT || { echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_SUS_KSTAT${NC}"; exit 1; }
-scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_TRY_UMOUNT || { echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_TRY_UMOUNT${NC}"; exit 1; }
-scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_SPOOF_UNAME || { echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_SPOOF_UNAME${NC}"; exit 1; }
-scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_ENABLE_LOG || { echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_ENABLE_LOG${NC}"; exit 1; }
-scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS || { echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS${NC}"; exit 1; }
-scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG || { echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG${NC}"; exit 1; }
-scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_OPEN_REDIRECT || { echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_OPEN_REDIRECT${NC}"; exit 1; }
-scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_SUS_MAP || { echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_SUS_MAP${NC}"; exit 1; }
+scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS || {
+  echo -e "${RED}ERROR: Failed to enable KSU_SUSFS${NC}"
+  exit 1
+}
+scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_SUS_PATH || {
+  echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_SUS_PATH${NC}"
+  exit 1
+}
+scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_SUS_MOUNT || {
+  echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_SUS_MOUNT${NC}"
+  exit 1
+}
+scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_SUS_KSTAT || {
+  echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_SUS_KSTAT${NC}"
+  exit 1
+}
+scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_TRY_UMOUNT || {
+  echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_TRY_UMOUNT${NC}"
+  exit 1
+}
+scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_SPOOF_UNAME || {
+  echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_SPOOF_UNAME${NC}"
+  exit 1
+}
+scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_ENABLE_LOG || {
+  echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_ENABLE_LOG${NC}"
+  exit 1
+}
+scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS || {
+  echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS${NC}"
+  exit 1
+}
+scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG || {
+  echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG${NC}"
+  exit 1
+}
+scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_OPEN_REDIRECT || {
+  echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_OPEN_REDIRECT${NC}"
+  exit 1
+}
+scripts/config --file "$CONFIG_FILE" --enable KSU_SUSFS_SUS_MAP || {
+  echo -e "${RED}ERROR: Failed to enable KSU_SUSFS_SUS_MAP${NC}"
+  exit 1
+}
 
 echo ""
 echo "=== Resolving config dependencies ==="

@@ -32,9 +32,9 @@ echo ""
 
 # Check if KernelSU driver is installed
 if [ ! -f "$KBUILD_FILE" ]; then
-    echo -e "${RED}ERROR: KernelSU driver not found at $KBUILD_FILE${NC}"
-    echo "Make sure KernelSU is installed before running this script."
-    exit 1
+  echo -e "${RED}ERROR: KernelSU driver not found at $KBUILD_FILE${NC}"
+  echo "Make sure KernelSU is installed before running this script."
+  exit 1
 fi
 
 echo "KernelSU Kbuild file: $KBUILD_FILE"
@@ -50,18 +50,18 @@ echo "Extracting version from Kbuild..."
 
 # First, try to get the version from git if the driver directory is a git repo
 if [ -d "$KERNEL_DIR/drivers/kernelsu/.git" ]; then
-    echo "  Method: Git repository (direct clone)"
-    KSU_VERSION=$(cd "$KERNEL_DIR/drivers/kernelsu" && git describe --tags --always 2>/dev/null || echo "")
+  echo "  Method: Git repository (direct clone)"
+  KSU_VERSION=$(cd "$KERNEL_DIR/drivers/kernelsu" && git describe --tags --always 2>/dev/null || echo "")
 
-    if [ -n "$KSU_VERSION" ]; then
-        # Remove 'v' prefix if present (workflow adds it back)
-        KSU_VERSION="${KSU_VERSION#v}"
-        echo -e "${GREEN}  ✓ Version from git: $KSU_VERSION${NC}"
-        echo "$KSU_VERSION" > "$VERSION_FILE"
-        echo ""
-        echo "Version saved to: $VERSION_FILE"
-        exit 0
-    fi
+  if [ -n "$KSU_VERSION" ]; then
+    # Remove 'v' prefix if present (workflow adds it back)
+    KSU_VERSION="${KSU_VERSION#v}"
+    echo -e "${GREEN}  ✓ Version from git: $KSU_VERSION${NC}"
+    echo "$KSU_VERSION" >"$VERSION_FILE"
+    echo ""
+    echo "Version saved to: $VERSION_FILE"
+    exit 0
+  fi
 fi
 
 # If git method failed, extract from Kbuild fallback values
@@ -71,26 +71,26 @@ echo "  Method: Kbuild fallback values"
 KSU_TAG=$(grep "^KSU_VERSION_TAG_FALLBACK :=" "$KBUILD_FILE" | sed 's/^KSU_VERSION_TAG_FALLBACK := //' || echo "")
 
 if [ -n "$KSU_TAG" ] && [ "$KSU_TAG" != "v0.0.1" ]; then
-    # Remove 'v' prefix if present (workflow adds it back)
-    KSU_TAG="${KSU_TAG#v}"
-    echo -e "${GREEN}  ✓ Version from Kbuild: $KSU_TAG${NC}"
-    echo "$KSU_TAG" > "$VERSION_FILE"
+  # Remove 'v' prefix if present (workflow adds it back)
+  KSU_TAG="${KSU_TAG#v}"
+  echo -e "${GREEN}  ✓ Version from Kbuild: $KSU_TAG${NC}"
+  echo "$KSU_TAG" >"$VERSION_FILE"
 else
-    # Fallback: try to compute from numeric version
-    KSU_VERSION_NUM=$(grep "^KSU_VERSION_FALLBACK :=" "$KBUILD_FILE" | sed 's/^KSU_VERSION_FALLBACK := //' || echo "1")
+  # Fallback: try to compute from numeric version
+  KSU_VERSION_NUM=$(grep "^KSU_VERSION_FALLBACK :=" "$KBUILD_FILE" | sed 's/^KSU_VERSION_FALLBACK := //' || echo "1")
 
-    if [ "$KSU_VERSION_NUM" != "1" ]; then
-        # For SUSFS variants, version is usually 30000 + commits + 60
-        # We can't reverse-compute the exact tag, but we can show the version
-        KSU_TAG="1.0-build-${KSU_VERSION_NUM}"
-        echo -e "${YELLOW}  ⚠ Using computed version: $KSU_TAG${NC}"
-    else
-        # Ultimate fallback
-        KSU_TAG="1.0-unknown"
-        echo -e "${YELLOW}  ⚠ Using fallback version: $KSU_TAG${NC}"
-    fi
+  if [ "$KSU_VERSION_NUM" != "1" ]; then
+    # For SUSFS variants, version is usually 30000 + commits + 60
+    # We can't reverse-compute the exact tag, but we can show the version
+    KSU_TAG="1.0-build-${KSU_VERSION_NUM}"
+    echo -e "${YELLOW}  ⚠ Using computed version: $KSU_TAG${NC}"
+  else
+    # Ultimate fallback
+    KSU_TAG="1.0-unknown"
+    echo -e "${YELLOW}  ⚠ Using fallback version: $KSU_TAG${NC}"
+  fi
 
-    echo "$KSU_TAG" > "$VERSION_FILE"
+  echo "$KSU_TAG" >"$VERSION_FILE"
 fi
 
 echo ""

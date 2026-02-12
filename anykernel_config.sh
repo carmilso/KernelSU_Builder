@@ -16,20 +16,20 @@ supported.patchlevels=
 
 ### AnyKernel install
 boot_attributes() {
-set_perm_recursive 0 0 755 644 $ramdisk/*;
-set_perm_recursive 0 0 750 750 $ramdisk/init* $ramdisk/sbin;
+  set_perm_recursive 0 0 755 644 $ramdisk/*
+  set_perm_recursive 0 0 750 750 $ramdisk/init* $ramdisk/sbin
 } # end attributes
 
 ## boot shell variables
-block=/dev/block/bootdevice/by-name/boot;
-is_slot_device=1;
-ramdisk_compression=auto;
-patch_vbmeta_flag=auto;
+block=/dev/block/bootdevice/by-name/boot
+is_slot_device=1
+ramdisk_compression=auto
+patch_vbmeta_flag=auto
 
-. tools/ak3-core.sh;
+. tools/ak3-core.sh
 
-set_os_prop;
+set_os_prop
 
-dump_boot;
-write_boot;
+dump_boot
+write_boot
 ## end boot install

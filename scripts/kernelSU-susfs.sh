@@ -145,12 +145,12 @@ if [ "$KSU_COMMIT_COUNT" -gt 0 ]; then
   fi
 
   # Save version for workflow
-  echo "$KSU_TAG" > "$SCRIPT_DIR/ksu_version.txt"
+  echo "$KSU_TAG" >"$SCRIPT_DIR/ksu_version.txt"
   echo ""
   echo "KSU version saved to ksu_version.txt"
 else
   echo -e "${YELLOW}WARNING: Could not determine KSU commit count. Version will use defaults.${NC}"
-  echo "1.0-susfs-unknown" > "$SCRIPT_DIR/ksu_version.txt"
+  echo "1.0-susfs-unknown" >"$SCRIPT_DIR/ksu_version.txt"
 fi
 
 # =====================================================================
