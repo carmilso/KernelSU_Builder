@@ -2,11 +2,14 @@
 
 # get-ksu-version.sh — Extract KernelSU version from installed driver
 #
-# This script extracts the KernelSU version from the installed driver's Kbuild file
-# after KernelSU has been installed into the kernel tree.
+# This script extracts the KernelSU version from the installed driver after
+# KernelSU has been installed into the kernel tree.
 #
-# For standard KernelSU-Next: Reads from drivers/kernelsu/Kbuild
-# For KernelSU-Next-SUSFS: Already computed by kernelSU-susfs.sh
+# Detection methods (in order):
+#  1. Symlink method: For setup.sh installations (finds KernelSU-Next repo)
+#  2. Direct git: For direct clones (checks drivers/kernelsu/.git)
+#  3. Kbuild fallback: Extracts from KSU_VERSION_TAG_FALLBACK
+#  4. Numeric fallback: Uses KSU_VERSION_FALLBACK to compute version
 #
 # Outputs: ksu_version.txt in project root
 
@@ -48,7 +51,38 @@ echo ""
 
 echo "Extracting version from Kbuild..."
 
-# First, try to get the version from git if the driver directory is a git repo
+# Method 1: Check if drivers/kernelsu is a symlink (setup.sh method)
+if [ -L "$KERNEL_DIR/drivers/kernelsu" ]; then
+  echo "  Method: Symlink detected (setup.sh installation)"
+
+  # Find the KernelSU-Next repository (setup.sh clones it at project root or kernel root)
+  KSU_REPO_DIR=""
+  for possible_dir in "$SCRIPT_DIR/KernelSU-Next" "$KERNEL_DIR/../KernelSU-Next" "$KERNEL_DIR/KernelSU-Next"; do
+    if [ -d "$possible_dir/.git" ]; then
+      KSU_REPO_DIR="$possible_dir"
+      break
+    fi
+  done
+
+  if [ -n "$KSU_REPO_DIR" ]; then
+    echo "  Found KernelSU-Next repository at: $KSU_REPO_DIR"
+    KSU_VERSION=$(cd "$KSU_REPO_DIR" && git describe --tags --always 2>/dev/null || echo "")
+
+    if [ -n "$KSU_VERSION" ]; then
+      # Remove 'v' prefix if present (workflow adds it back)
+      KSU_VERSION="${KSU_VERSION#v}"
+      echo -e "${GREEN}  ✓ Version from git: $KSU_VERSION${NC}"
+      echo "$KSU_VERSION" >"$VERSION_FILE"
+      echo ""
+      echo "Version saved to: $VERSION_FILE"
+      exit 0
+    fi
+  else
+    echo -e "${YELLOW}  ⚠ Symlink found but KernelSU-Next repo not located${NC}"
+  fi
+fi
+
+# Method 2: Check if drivers/kernelsu is a direct git clone
 if [ -d "$KERNEL_DIR/drivers/kernelsu/.git" ]; then
   echo "  Method: Git repository (direct clone)"
   KSU_VERSION=$(cd "$KERNEL_DIR/drivers/kernelsu" && git describe --tags --always 2>/dev/null || echo "")
