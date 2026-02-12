@@ -19,16 +19,27 @@ LineageOS-23.2-kebab:
     - git clone --depth=1 https://github.com/LineageOS/android_kernel_oneplus_sm8250.git -b lineage-23.2
   clang:
     - mkdir -p clang && wget -qO- "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz" | tar -C clang -zxf -
+  
+  # KernelSU-Next-SUSFS driver (wshamroukh's pre-patched legacy with SUSFS glue)
+  kernelSU:
+    type: susfs-legacy
+    repo: https://github.com/wshamroukh/KernelSU-Next-SUSFS-kernelv4.19
+    branch: legacy
+  
+  # SUSFS v2.0.0 patch and hooks
+  susfs:
+    enabled: true
+    patch: susfs-2.0.0.patch
+  
   config:
     - make O=out ARCH=arm64 LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- vendor/kona-perf_defconfig vendor/oplus.config
+  
   build:
     - make -j$(nproc --all) O=out ARCH=arm64 LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu-
   target:
     - out/arch/arm64/boot/Image
   anykernel:
     - kebab
-  kernelSU:
-    - next-legacy
 
 Clean:
   out:

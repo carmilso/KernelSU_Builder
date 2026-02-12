@@ -102,12 +102,75 @@ jobs:
       - name: Set KERNELSU_VERSION environment variable
         run: echo "KERNELSU_VERSION=$(cat ksu_version.txt)" >> $GITHUB_ENV
 
-      - name: Add KernelSU Next support to kernel
+      - name: Check if SUSFS is enabled for this version
+        id: check-susfs
+        run: |
+          json=$(python -c "import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)" < sources.yaml)
+          susfs_enabled=$(echo "$json" | jq -r --arg v "$VERSION" '.[$v].susfs.enabled // false')
+          echo "susfs_enabled=$susfs_enabled" >> $GITHUB_OUTPUT
+          echo "SUSFS enabled for $VERSION: $susfs_enabled"
+
+      - name: Check for new SUSFS patch version
+        if: steps.check-susfs.outputs.susfs_enabled == 'true'
+        id: check-susfs-version
+        run: |
+          chmod +x check-susfs-version.sh
+          ./check-susfs-version.sh || true
+
+      - name: Add KernelSU-Next-SUSFS support to kernel
+        if: steps.check-susfs.outputs.susfs_enabled == 'true'
+        env:
+          KSU_REPO_URL: https://github.com/wshamroukh/KernelSU-Next-SUSFS-kernelv4.19
+          KSU_BRANCH: legacy
+        run: |
+          chmod +x kernelSU-susfs.sh
+          ./kernelSU-susfs.sh
+
+      - name: Add KernelSU Next support to kernel (standard)
+        if: steps.check-susfs.outputs.susfs_enabled != 'true'
         run: |
           chmod +x kernelSU.sh
           ./kernelSU.sh
 
-      - name: Compile kernel with KernelSU Next support
+      - name: Apply SUSFS patches and hooks
+        if: steps.check-susfs.outputs.susfs_enabled == 'true'
+        run: |
+          chmod +x apply-susfs.sh
+          ./apply-susfs.sh
+
+      - name: Compile kernel with KernelSU Next support (SUSFS)
+        if: steps.check-susfs.outputs.susfs_enabled == 'true'
+        env:
+          KBUILD_BUILD_HOST: Github-Action
+          KBUILD_BUILD_USER: KernelSU_Builder
+        run: |
+          set -e  # Exit on any error
+          cd kernel
+          
+          # Read config and build commands from sources.yaml
+          json=$(python -c "import sys, yaml, json; json.dump(yaml.safe_load(sys.stdin), sys.stdout)" < ../sources.yaml)
+          config_cmd=$(echo "$json" | jq -r --arg v "$VERSION" '.[$v].config[]')
+          build_cmd=$(echo "$json" | jq -r --arg v "$VERSION" '.[$v].build[]')
+
+          # Step 1: Generate .config using merge_config.sh and resolve dependencies
+          echo "=== Generating kernel config ==="
+          eval "$config_cmd"
+
+          # Step 2: Apply SUSFS config options using configure-susfs.sh
+          echo "=== Configuring KernelSU + SUSFS ==="
+          chmod +x ../configure-susfs.sh
+          ../configure-susfs.sh
+
+          # Step 3: Build
+          echo "=== Building kernel with KernelSU + SUSFS ==="
+          eval "$build_cmd"
+          
+          # Step 5: Show ccache stats
+          echo "=== ccache statistics ==="
+          ccache -s
+
+      - name: Compile kernel with KernelSU Next support (standard)
+        if: steps.check-susfs.outputs.susfs_enabled != 'true'
         env:
           KBUILD_BUILD_HOST: Github-Action
           KBUILD_BUILD_USER: KernelSU_Builder
@@ -210,16 +273,46 @@ jobs:
             kernel/out/include/config/auto.conf
           retention-days: 7
 
-      - name: Make a release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            ${{ github.workspace }}/${{ env.ZIP_NO_KSU }}
-            ${{ github.workspace }}/${{ env.ZIP_KSU }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          name: KernelSU Next ${{ env.KERNELSU_VERSION }} - ${{ matrix.version }}
-          tag_name: v${{ env.KERNELSU_VERSION }}-${{ github.run_number }}
-          body: |
+      - name: Prepare release notes
+        id: release-notes
+        run: |
+          if [ "${{ steps.check-susfs.outputs.susfs_enabled }}" = "true" ]; then
+            cat > release_body.md << 'EOF'
+            **Info:**
+            - KernelSU Next Version: ${{ env.KERNELSU_VERSION }} (wshamroukh SUSFS variant)
+            - SUSFS Version: v2.0.0
+            - Device: OnePlus 8T (kebab)
+            - Kernel: 4.19 (SM8250/kona)
+            - Hook method: manual hooks (non-GKI)
+            
+            **Features:**
+            - ✅ KernelSU-Next with SUSFS integration
+            - ✅ SUSFS v2.0.0 (Systemless UID and FileSystem spoofing)
+            - ✅ Path hiding (SUS_PATH)
+            - ✅ Mount hiding (SUS_MOUNT)
+            - ✅ Kstat spoofing (SUS_KSTAT)
+            - ✅ Try umount support (TRY_UMOUNT)
+            - ✅ Uname spoofing
+            - ✅ Symbol hiding
+            - ✅ Cmdline/bootconfig spoofing
+            - ✅ Open redirect
+            - ✅ Map hiding (SUS_MAP)
+
+            **Variants:**
+            - `LineageOS-23-kebab` — LineageOS 23.0 (standard KernelSU, kprobes)
+            - `LineageOS-23.2-kebab` — LineageOS 23.2 (KernelSU + SUSFS, manual hooks) ⭐
+
+            **Installation:**
+            - Download the zip matching your ROM version.
+            - Flash in recovery using sideload or any other method.
+            - **Note:** LineageOS 23.2 variant includes SUSFS features for enhanced root hiding.
+            
+            **SUSFS Configuration:**
+            - Configure SUSFS via KernelSU Manager app or ksud CLI
+            - See [SUSFS documentation](https://github.com/sidex15/SUSFS4KSU) for usage guide
+          EOF
+          else
+            cat > release_body.md << 'EOF'
             **Info:**
             - KernelSU Next Version: ${{ env.KERNELSU_VERSION }} (legacy branch)
             - Device: OnePlus 8T (kebab)
@@ -233,12 +326,38 @@ jobs:
             **Installation:**
             - Download the zip matching your ROM version.
             - Flash in recovery using sideload or any other method.
+          EOF
+          fi
+          
+          # Add SUSFS version check warning if new version detected
+          if [ "${{ steps.check-susfs-version.outputs.NEW_SUSFS_VERSION }}" = "true" ]; then
+            echo "" >> release_body.md
+            echo "---" >> release_body.md
+            echo "" >> release_body.md
+            echo "⚠️ **Note:** A newer SUSFS patch version may be available. Check the [SUSFS repository](${{ steps.check-susfs-version.outputs.SUSFS_UPSTREAM_URL }}) for updates." >> release_body.md
+          fi
+          
+          # Add build settings
+          cat >> release_body.md << 'EOF'
+          
+          <details>
+            <summary>Build Settings</summary>
+            
+            ```
+            ${{ env.buildsettings }}
+            ```
+          </details>
+          EOF
 
-            <details>
-              <summary>Build Settings</summary>
-              ```
-              ${{ env.buildsettings }}
-              ```
-            </details>
+      - name: Make a release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ github.workspace }}/${{ env.ZIP_NO_KSU }}
+            ${{ github.workspace }}/${{ env.ZIP_KSU }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: KernelSU Next ${{ env.KERNELSU_VERSION }} - ${{ matrix.version }}
+          tag_name: v${{ env.KERNELSU_VERSION }}-${{ github.run_number }}
+          body_path: release_body.md
           draft: false
           prerelease: false
