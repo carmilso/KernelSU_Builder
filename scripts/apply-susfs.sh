@@ -217,6 +217,44 @@ echo ""
 echo -e "${GREEN}All KernelSU manual hooks applied successfully!${NC}"
 
 # =====================================================================
+# Step 4b: Fix KernelSU driver for SUSFS compatibility
+# =====================================================================
+step "Step 4b: Fix KernelSU driver for SUSFS compatibility"
+
+# The wshamroukh driver has a commented-out SELinux rule that is required
+# for SUSFS try_umount to work. When CONFIG_KSU_SUSFS_TRY_UMOUNT is enabled,
+# susfs_try_umount() replaces ksu_handle_umount() and calls try_umount()
+# directly in the zygote's credential context (no credential override).
+# Without this SELinux rule, the zygote process is denied unmount permission
+# by SELinux, making every try_umount call silently fail.
+#
+# Reference: sidex15/KernelSU commit 8be13a3 ("kernel: susfs: bring back
+# susfs try_umount") explicitly uncomments this rule in selinux/rules.c.
+SELINUX_RULES="drivers/kernelsu/selinux/rules.c"
+
+if [ -f "$SELINUX_RULES" ]; then
+  if grep -q '//ksu_allow(db, "zygote", "labeledfs", "filesystem", "unmount")' "$SELINUX_RULES"; then
+    echo "Fixing SELinux rules: enabling zygote unmount permission for SUSFS try_umount..."
+    sed -i 's|//ksu_allow(db, "zygote", "labeledfs", "filesystem", "unmount");|ksu_allow(db, "zygote", "labeledfs", "filesystem", "unmount");|' "$SELINUX_RULES"
+
+    if grep -q 'ksu_allow(db, "zygote", "labeledfs", "filesystem", "unmount")' "$SELINUX_RULES" &&
+      ! grep -q '//ksu_allow(db, "zygote", "labeledfs", "filesystem", "unmount")' "$SELINUX_RULES"; then
+      echo -e "  ${GREEN}OK${NC}: SELinux zygote unmount rule enabled"
+    else
+      echo -e "  ${RED}FAILED${NC}: Could not uncomment SELinux rule"
+      HOOKS_FAILED=1
+    fi
+  else
+    echo -e "  ${GREEN}SKIP${NC}: SELinux zygote unmount rule already enabled (or not found)"
+  fi
+else
+  echo -e "${YELLOW}WARNING${NC}: $SELINUX_RULES not found — SELinux fix skipped"
+fi
+
+echo ""
+echo -e "${GREEN}Driver fixes applied.${NC}"
+
+# =====================================================================
 # Step 5: Verify KernelSU driver installation
 # =====================================================================
 step "Step 5: Verify KernelSU driver installation"
